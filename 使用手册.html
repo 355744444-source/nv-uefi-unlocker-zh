@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nv-uefi-unlocker 中文整合手册 v1.1 · 对应上游 v2.1.9</title>
+<meta name="description" content="nv-uefi-unlocker（UEFI 预驱动层 NVIDIA 显卡 Tensor 算力解锁器）中文整合手册：原理、兼容性、制盘、验证、故障排查与源码构建。对接上游 v2.1.9。">
+<meta name="author" content="江苏振远智能科技有限公司">
+<meta name="copyright" content="© 2026 江苏振远智能科技有限公司 保留所有权利">
+<meta name="dcterms.rightsHolder" content="江苏振远智能科技有限公司">
+<meta name="dcterms.dateCopyrighted" content="2026">
+<meta name="dcterms.modified" content="2026-11-02">
+<meta name="document-id" content="ZY-TECH-NVUEFI-2026-01">
+<meta name="document-version" content="v1.1">
+<meta name="classification" content="内部资料">
+<meta name="robots" content="noindex,nofollow">
+<style>
+:root{
+  --bg:#F7F7F5; --surface:#FFFFFF; --surface-2:#F1F2F0; --surface-3:#E7E8E5;
+  --text:#1F2328; --text-2:#59636E; --text-faint:#858F9B;
+  --border:#E2E4E6; --brand:#0B6E99; --brand-ink:#07546F; --brand-soft:#E7F2F8;
+  --ok:#1B7F45; --ok-soft:#E9F6EF; --warn:#9A5D00; --warn-soft:#FCF3E3;
+  --danger:#B8342A; --danger-soft:#FBECEA;
+  --code-bg:#161A20; --mono:'Cascadia Mono','Consolas','SFMono-Regular',monospace;
+  --shadow:0 1px 2px rgba(16,24,32,.05),0 8px 24px rgba(16,24,32,.04);
+}
+html[data-theme="dark"]{
+  --bg:#0E1116; --surface:#161B22; --surface-2:#1A2028; --surface-3:#222A34;
+  --text:#E6EDF3; --text-2:#9BA7B4; --text-faint:#6E7B8A;
+  --border:#242C36; --brand:#4FB3E8; --brand-ink:#93D6F7; --brand-soft:#12222C;
+  --ok:#4FD68A; --ok-soft:#12241A; --warn:#F0B84E; --warn-soft:#2A2113;
+  --danger:#FF8A8A; --danger-soft:#2C1717;
+  --code-bg:#0A0D12;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.75; -webkit-font-smoothing:antialiased;
+}
+code,kbd,pre,.mono{font-family:var(--mono)}
+
+/* ---------- topbar ---------- */
+.top{
+  position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:14px;
+  padding:0 22px; height:56px; background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(12px); border-bottom:1px solid var(--border);
+}
+.top .brandmark{display:flex; align-items:center; gap:9px; font-weight:700; font-size:14px; letter-spacing:.2px}
+.top .dot{width:9px;height:9px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px var(--brand-soft)}
+.top .ver{font-family:var(--mono); font-size:11.5px; color:var(--text-2); border:1px solid var(--border);
+  padding:2px 8px; border-radius:99px; background:var(--surface)}
+.top .spacer{flex:1}
+.tbtn{
+  display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 12px; cursor:pointer;
+  font:inherit; font-size:12.5px; color:var(--text-2); background:var(--surface);
+  border:1px solid var(--border); border-radius:8px;
+}
+.tbtn:hover{color:var(--brand); border-color:var(--brand)}
+
+/* ---------- layout ---------- */
+.wrap{display:grid; grid-template-columns:238px minmax(0,1fr); gap:34px; max-width:1320px; margin:0 auto; padding:0 22px}
+nav.toc{position:sticky; top:56px; align-self:start; max-height:calc(100vh - 56px); overflow-y:auto; padding:26px 0 40px}
+nav.toc .grp{font-size:11px; letter-spacing:1.4px; color:var(--text-faint); text-transform:uppercase;
+  margin:18px 0 7px; padding-left:10px}
+nav.toc .grp:first-child{margin-top:0}
+nav.toc a{
+  display:flex; gap:9px; align-items:baseline; padding:5px 10px; border-radius:7px;
+  color:var(--text-2); text-decoration:none; font-size:13.2px; line-height:1.45;
+  border-left:2px solid transparent;
+}
+nav.toc a:hover{background:var(--surface-2); color:var(--text)}
+nav.toc a.on{background:var(--brand-soft); color:var(--brand-ink); border-left-color:var(--brand); font-weight:600}
+nav.toc .num{font-family:var(--mono); font-size:11px; color:var(--text-faint); min-width:20px; flex:0 0 auto; padding-top:2px}
+nav.toc a.on .num{color:var(--brand)}
+main{padding:34px 0 90px; min-width:0}
+
+/* ---------- hero ---------- */
+.hero{border:1px solid var(--border); border-radius:16px; padding:30px 30px 24px;
+  background:linear-gradient(160deg,var(--brand-soft),var(--surface) 62%); box-shadow:var(--shadow); margin-bottom:30px}
+.hero .kicker{font-size:11.5px; letter-spacing:1.6px; color:var(--brand); font-weight:700; text-transform:uppercase}
+.hero h1{margin:12px 0 10px; font-size:29px; line-height:1.28; letter-spacing:-.3px}
+.hero p.lede{margin:0; color:var(--text-2); font-size:14.5px; max-width:74ch}
+.hero .marks{display:flex; flex-wrap:wrap; gap:8px; margin-top:18px}
+.chip{font-size:11.5px; font-family:var(--mono); padding:3px 9px; border-radius:99px;
+  border:1px solid var(--border); background:var(--surface); color:var(--text-2);
+  white-space:nowrap; flex:0 0 auto}
+.chip.hi{border-color:var(--brand); color:var(--brand-ink); background:var(--brand-soft)}
+.chip.warn{border-color:var(--warn); color:var(--warn); background:var(--warn-soft)}
+.hero .copyline{
+  margin-top:20px; padding-top:14px; border-top:1px solid var(--border);
+  font-size:11.8px; color:var(--text-faint); display:flex; flex-wrap:wrap; gap:6px 16px;
+}
+
+/* ---------- headings ---------- */
+h2{font-size:21px; margin:52px 0 6px; padding-top:12px; letter-spacing:-.2px; scroll-margin-top:68px}
+h2 .sn{color:var(--brand); font-family:var(--mono); font-size:15px; margin-right:10px; font-weight:600}
+h3{font-size:16px; margin:30px 0 8px; letter-spacing:-.1px; scroll-margin-top:68px}
+h4{font-size:14px; margin:22px 0 6px}
+p{margin:9px 0}
+a{color:var(--brand-ink); text-underline-offset:2px}
+a:hover{color:var(--brand)}
+ul,ol{margin:9px 0; padding-left:22px}
+li{margin:4px 0}
+strong,b{font-weight:700; color:var(--text)}
+hr{border:0; border-top:1px solid var(--border); margin:34px 0}
+.small{font-size:12.6px; color:var(--text-2)}
+.lead{font-size:14.6px; color:var(--text-2)}
+
+/* ---------- inline code ---------- */
+code{background:var(--surface-3); color:var(--text); padding:1.5px 5px; border-radius:5px; font-size:12.6px}
+html[data-theme="dark"] code{background:#1E2631; color:#BFE4F7}
+
+/* ---------- terminal ---------- */
+.term{background:var(--code-bg); border-radius:10px; margin:12px 0; overflow:hidden; border:1px solid var(--border)}
+.term .bar{display:flex; align-items:center; gap:6px; padding:8px 12px; background:rgba(255,255,255,.035);
+  border-bottom:1px solid rgba(255,255,255,.07)}
+.term .bar i{width:9px; height:9px; border-radius:50%; display:block}
+.term .bar i:nth-child(1){background:#FF5F57}
+.term .bar i:nth-child(2){background:#FEBC2E}
+.term .bar i:nth-child(3){background:#28C840}
+.term .bar span{margin-left:8px; font-family:var(--mono); font-size:11px; color:#7C8899}
+.term pre{margin:0; padding:12px 14px; overflow-x:auto; color:#D6E2EE; font-size:12.6px; line-height:1.7}
+.term pre .c{color:#6E7F91}
+.term pre .p{color:#63D2A8}
+.term pre .o{color:#8FB6D6}
+
+/* ---------- callout ---------- */
+.callout{border:1px solid var(--border); border-left:3px solid var(--brand); border-radius:9px;
+  padding:12px 16px; margin:15px 0; background:var(--surface); font-size:13.6px}
+.callout .t{font-weight:700; font-size:13px; margin-bottom:3px; display:block; color:var(--brand-ink)}
+.callout.tip{border-left-color:var(--ok); background:var(--ok-soft)} .callout.tip .t{color:var(--ok)}
+.callout.warn{border-left-color:var(--warn); background:var(--warn-soft)} .callout.warn .t{color:var(--warn)}
+.callout.danger{border-left-color:var(--danger); background:var(--danger-soft)} .callout.danger .t{color:var(--danger)}
+.callout p:first-of-type{margin-top:0} .callout p:last-child{margin-bottom:0}
+
+/* ---------- cards / mini ---------- */
+.card{border:1px solid var(--border); border-radius:11px; background:var(--surface); padding:16px 18px; margin:14px 0; box-shadow:var(--shadow)}
+.mini{display:grid; grid-template-columns:repeat(auto-fit,minmax(196px,1fr)); gap:12px; margin:15px 0}
+.mini .m{border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:13px 15px}
+.mini .m .h{font-size:12px; color:var(--text-faint); letter-spacing:.5px; margin-bottom:5px}
+.mini .m .v{font-size:19px; font-weight:700; font-family:var(--mono); letter-spacing:-.5px}
+.mini .m .n{font-size:12px; color:var(--text-2); margin-top:3px}
+
+/* ---------- steps ---------- */
+.steps{list-style:none; counter-reset:st; padding:0; margin:16px 0}
+.steps>li{
+  counter-increment:st; position:relative; padding:0 0 20px 40px;
+  border-left:1px dashed var(--border); margin-left:13px;
+}
+.steps>li:last-child{border-left-color:transparent; padding-bottom:0}
+.steps>li::before{
+  content:counter(st); position:absolute; left:-13px; top:0; width:26px; height:26px; border-radius:50%;
+  background:var(--surface-2); border:1px solid var(--border); color:var(--brand-ink);
+  font-family:var(--mono); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;
+}
+.steps>li .st-h{font-weight:700; display:block; margin-bottom:4px}
+
+/* ---------- table ---------- */
+.tw{overflow-x:auto; margin:14px 0; border:1px solid var(--border); border-radius:10px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:13px; min-width:520px}
+th,td{padding:8px 11px; text-align:left; vertical-align:top; border-bottom:1px solid var(--border)}
+thead th{background:var(--surface-2); font-size:12px; letter-spacing:.3px; font-weight:700; position:sticky; top:0}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+td code{font-size:12px; white-space:nowrap}
+.nowrap{white-space:nowrap}
+.ok{color:var(--ok); font-weight:700}
+.warnc{color:var(--warn); font-weight:700}
+.bad{color:var(--danger); font-weight:700}
+
+/* ---------- figure ---------- */
+figure.fig{margin:20px 0; padding:16px; border:1px solid var(--border); border-radius:11px; background:var(--surface)}
+figure.fig svg{display:block; width:100%; height:auto}
+figure.fig figcaption{margin-top:10px; font-size:12.2px; color:var(--text-2); text-align:center}
+figure.fig figcaption b{color:var(--text); font-weight:700}
+
+/* ---------- checklist ---------- */
+.cl{list-style:none; padding:0; margin:12px 0}
+.cl li{position:relative; padding-left:26px; margin:6px 0; font-size:13.6px}
+.cl li::before{
+  content:""; position:absolute; left:2px; top:7px; width:9px; height:9px; border-radius:2px;
+  border:1.5px solid var(--brand); background:transparent;
+}
+
+/* ---------- 常见问答 ---------- */
+h4.q{margin:22px 0 4px; padding-top:14px; border-top:1px dashed var(--border); color:var(--text); font-size:14px}
+h4.q .qno{font-family:var(--mono); font-size:11px; color:var(--brand-ink); background:var(--brand-soft);
+  border:1px solid var(--brand); border-radius:5px; padding:1px 6px; margin-right:8px; white-space:nowrap}
+
+/* ---------- footer / copyright ---------- */
+.rev{margin-top:56px; padding:18px 20px; border:1px solid var(--border); border-left:3px solid var(--brand);
+  border-radius:10px; background:var(--surface)}
+.rev h4{margin:0 0 10px; font-size:13.5px}
+.rev table{min-width:0; font-size:12.6px}
+.rev td:first-child{font-family:var(--mono); white-space:nowrap}
+.rev tr:last-child td{background:var(--brand-soft)}
+
+.copyright{margin-top:24px; padding:22px 24px; border:1px solid var(--border); border-left:3px solid var(--brand);
+  border-radius:10px; background:var(--surface-2); font-size:12.2px; color:var(--text-2); line-height:1.72}
+.copyright .cp-h{font-size:13px; font-weight:700; color:var(--text); margin-bottom:10px}
+.copyright .cp-p{color:var(--brand-ink); font-weight:700}
+.copyright ul{margin:8px 0; padding-left:18px}
+.copyright li{margin:5px 0}
+.copyright .cp-meta{margin-top:14px; padding-top:11px; border-top:1px dashed var(--border);
+  font-family:var(--mono); font-size:11.2px; color:var(--text-faint); display:flex; flex-wrap:wrap; gap:5px 14px}
+
+.totop{position:fixed; right:22px; bottom:22px; width:38px; height:38px; border-radius:10px; z-index:40;
+  display:none; align-items:center; justify-content:center; cursor:pointer;
+  background:var(--surface); border:1px solid var(--border); color:var(--text-2); box-shadow:var(--shadow)}
+.totop.on{display:flex}
+.totop:hover{color:var(--brand); border-color:var(--brand)}
+
+@media (max-width:1040px){
+  .wrap{grid-template-columns:minmax(0,1fr); gap:0; padding:0 16px}
+  nav.toc{position:static; max-height:none; overflow:visible; padding:14px 0 0;
+    border-bottom:1px solid var(--border); display:grid; grid-template-columns:1fr 1fr; column-gap:10px}
+  nav.toc .grp{margin:10px 0 2px; grid-column:1 / -1}
+  nav.toc .grp:first-child{margin-top:0}
+  main{padding-top:22px}
+  .hero{padding:22px 20px}
+  .hero h1{font-size:23px}
+}
+
+/* ============ PRINT ============ */
+@page{size:A4; margin:14mm 12mm}
+@media print{
+  /* 关键：打印时把变量整体切回浅色，否则 data-theme="dark" 会让 SVG 里的
+     fill="var(--surface-2)" 仍然是深色，配深色文字 = 看不见 */
+  :root,html[data-theme="dark"]{
+    --bg:#fff; --surface:#fff; --surface-2:#f4f7f9; --surface-3:#eef2f5;
+    --text:#0d1117; --text-2:#3d4650; --text-faint:#5b6470;
+    --border:#ccd6dc; --brand:#0b5468; --brand-ink:#0b5468; --brand-soft:#e2f0f7;
+    --ok:#14603a; --ok-soft:#f2f8f4; --warn:#7a4a00; --warn-soft:#fdf8ef;
+    --danger:#8f2a22; --danger-soft:#fdf3f2; --code-bg:#fff; --shadow:none;
+  }
+  html,body{background:#fff !important; color:#0d1117 !important; font-size:10.5pt}
+  .top,nav.toc,.totop{display:none !important}
+  .wrap{display:block; max-width:none; padding:0}
+  main{padding:0}
+  a{color:#0b5468 !important; text-decoration:none}
+  a[href^="http"]::after{content:" (" attr(href) ")"; font-size:8pt; color:#5b6470; word-break:break-all}
+  h2{page-break-before:always; margin-top:0; color:#0d1117 !important; font-size:16pt}
+  h1,h2,h3,h4{color:#0d1117 !important}
+  h2 .sn{color:#0b5468 !important}
+  strong,b{color:#0d1117 !important}
+  .hero{background:#f2f6f8 !important; border-color:#ccd6dc !important; page-break-inside:avoid}
+  .hero p.lede,.lead,.small,figcaption,.mini .m .n{color:#3d4650 !important}
+  .chip{background:#eef2f5 !important; color:#26414f !important; border-color:#c9d3de !important}
+  .chip.hi{background:#e2f0f7 !important; color:#0b5468 !important; border-color:#8fbfd6 !important}
+  .chip.warn{background:#fcf3e3 !important; color:#7a4a00 !important; border-color:#e0c08a !important}
+  .card,.mini .m,figure.fig,.tw,.rev{background:#fafbfc !important; border-color:#d5dbe0 !important; box-shadow:none !important; page-break-inside:avoid}
+  figure.fig figcaption b{color:#0d1117 !important}
+  .rev{page-break-inside:avoid}
+  .rev tr:last-child td{background:#eef4f7 !important}
+  .copyright{background:#f2f4f6 !important; border-color:#d5dbe0 !important; color:#3d4650 !important; page-break-inside:avoid}
+  .copyright .cp-h,.copyright .cp-p{color:#0d1117 !important}
+  .callout{background:#f7f9fa !important; border-color:#d5dbe0 !important; border-left-color:#0b5468 !important; page-break-inside:avoid}
+  .callout .t{color:#0b5468 !important}
+  .callout.tip{border-left-color:#1b7f45 !important; background:#f2f8f4 !important}
+  .callout.tip .t{color:#14603a !important}
+  .callout.warn{border-left-color:#9a5d00 !important; background:#fdf8ef !important}
+  .callout.warn .t{color:#7a4a00 !important}
+  .callout.danger{border-left-color:#b8342a !important; background:#fdf3f2 !important}
+  .callout.danger .t{color:#8f2a22 !important}
+  .term{background:#fff !important; border-color:#c9d3de !important; page-break-inside:avoid}
+  .term .bar{background:#eef2f5 !important; border-color:#c9d3de !important}
+  .term .bar span{color:#5b6470 !important}
+  .term pre{color:#12212b !important; background:#fff !important}
+  .term pre .c{color:#5c7086 !important}
+  .term pre .p{color:#14603a !important}
+  .term pre .o{color:#0b5468 !important}
+  code{background:#eef2f5 !important; color:#12333f !important}
+  td code,th code,li code{background:#eef2f5 !important; color:#12333f !important}
+  th{background:#eef2f5 !important; color:#0d1117 !important}
+  tbody tr:hover{background:transparent !important}
+  .ok{color:#14603a !important} .warnc{color:#7a4a00 !important} .bad{color:#8f2a22 !important}
+  .steps>li::before{background:#eef2f5 !important; border-color:#c9d3de !important; color:#0b5468 !important}
+  /* SVG 兜底：把插图里所有非白字压深，避免浅字浅底 */
+  figure.fig svg text{fill:#26313f !important}
+  figure.fig svg text[fill="#4FD68A"],figure.fig svg text[fill="#4fd68a"]{fill:#14603a !important}
+  figure.fig svg text[fill="#F0B84E"],figure.fig svg text[fill="#f0b84e"]{fill:#7a4a00 !important}
+  figure.fig svg text[fill="#FF8A8A"],figure.fig svg text[fill="#ff8a8a"]{fill:#8f2a22 !important}
+  figure.fig svg text[fill="#93D6F7"],figure.fig svg text[fill="#4FB3E8"]{fill:#0b5468 !important}
+  figure.fig svg [fill^="url("]{fill:#eef4f7 !important}
+  figure.fig svg rect[fill="#161B22"],figure.fig svg rect[fill="#1A2028"],figure.fig svg rect[fill="#0E1116"],
+  figure.fig svg rect[fill="#222A34"],figure.fig svg rect[fill="#12222C"]{fill:#f4f7f9 !important}
+  figure.fig svg path[fill="#161B22"],figure.fig svg circle[fill="#161B22"]{fill:#f4f7f9 !important}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brandmark"><span class="dot"></span>nv-uefi-unlocker · 中文整合手册</div>
+  <span class="ver">上游 v2.1.9</span>
+  <div class="spacer"></div>
+  <button class="tbtn" id="themeBtn" type="button" aria-label="切换深浅主题">◐ <span id="themeTxt">浅色</span></button>
+</div>
+
+<div class="wrap">
+<nav class="toc" id="toc">
+  <div class="grp">入门</div>
+  <a href="#s0"><span class="num">导</span><span>新手先看这页</span></a>
+  <a href="#s1"><span class="num">01</span><span>这是什么工具</span></a>
+  <a href="#s2"><span class="num">02</span><span>原理与家族路由</span></a>
+
+  <div class="grp">判断</div>
+  <a href="#s3"><span class="num">03</span><span>兼容性与逐卡证据</span></a>
+  <a href="#s4"><span class="num">04</span><span>前置条件与风险</span></a>
+
+  <div class="grp">操作</div>
+  <a href="#s5"><span class="num">05</span><span>制作启动 U 盘</span></a>
+  <a href="#s6"><span class="num">06</span><span>启动、事务与交棒</span></a>
+  <a href="#s7"><span class="num">07</span><span>系统内验证与修复</span></a>
+
+  <div class="grp">排错与延伸</div>
+  <a href="#s8"><span class="num">08</span><span>故障速查与恢复</span></a>
+  <a href="#s9"><span class="num">09</span><span>与 nvoc 组合调优</span></a>
+  <a href="#s10"><span class="num">10</span><span>源码构建</span></a>
+  <a href="#s11"><span class="num">11</span><span>安全边界与已知缺口</span></a>
+
+  <div class="grp">附录</div>
+  <a href="#a1"><span class="num">A</span><span>命令速查</span></a>
+  <a href="#a2"><span class="num">B</span><span>U 盘文件与标记速查</span></a>
+  <a href="#a3"><span class="num">C</span><span>术语表</span></a>
+  <a href="#a4"><span class="num">D</span><span>交付包内容说明</span></a>
+</nav>
+
+<main>
+
+<div class="hero">
+  <div class="kicker">UEFI 预驱动层 · GeForce Tensor 算力解锁</div>
+  <h1>nv-uefi-unlocker 中文整合手册</h1>
+  <p class="lede">
+    这份手册把上游仓库的 README、FAQ、兼容性矩阵与部署指南整合成一条可执行的路径：
+    确认你的显卡能不能用、怎么制作启动 U 盘、启动后怎么判断成功、失败了怎么退回来。
+    所有命令都取自上游 v2.1.9 源码与发布包，可直接复制。
+  </p>
+  <div class="marks">
+    <span class="chip hi">上游 v2.1.9 · 2026-11-01</span>
+    <span class="chip">GTX 16 / RTX 20 / 30 / 40</span>
+    <span class="chip">UEFI 一次性启动 · 不刷 VBIOS</span>
+    <span class="chip warn">Secure Boot 须关闭</span>
+    <span class="chip warn">断电即复原 · 每次冷启动需重放</span>
+  </div>
+  <div class="copyline">
+    <span>© 2026 江苏振远智能科技有限公司 · 内部技术资料</span>
+    <span>文档编号 ZY-TECH-NVUEFI-2026-01</span>
+    <span>整合依据：上游 GPL-2.0-only 源码与官方发布包</span>
+  </div>
+</div>
+
+<h2 id="s0"><span class="sn">导</span>新手先看这页</h2>
+
+<p class="lead">如果这是你第一次接触这个工具，不必从第 01 章顺序读到底。这一节给出三条最该先记住的判断、一张推进路径图、
+术语与常见误解速查，以及从零到跑通的最短清单。</p>
+
+<h3>0.1 先记住三条判断</h3>
+
+<div class="mini">
+  <div class="m"><div class="h">判断一</div><div class="v" style="font-size:15px;line-height:1.5">它是「易失性」解锁</div>
+    <div class="n">断电、冷启动、休眠恢复都可能清掉。不是刷 VBIOS，也不能一次搞定长期有效。</div></div>
+  <div class="m"><div class="h">判断二</div><div class="v" style="font-size:15px;line-height:1.5">按芯片家族走，不按型号名</div>
+    <div class="n">决定成败的是 PCI device ID 落在哪个段，同族共用资产。型号名只用于对照实测记录。</div></div>
+  <div class="m"><div class="h">判断三</div><div class="v" style="font-size:15px;line-height:1.5">EFI 成功 ≠ 系统内有效</div>
+    <div class="n">必须在系统内读回 SS 覆盖值才能算完成。日志全绿但性能没动，通常是被驱动或电源管理冲掉了。</div></div>
+</div>
+
+<h3>0.2 推进路径与阶段验收点</h3>
+
+<figure class="fig">
+<svg viewBox="0 0 900 296" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="五阶段推进路径图">
+<defs>
+<marker id="ar1" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+<path d="M0,0 L9,3.5 L0,7 z" fill="var(--text-faint)"/>
+</marker>
+</defs>
+<!-- 阶段卡 -->
+<g font-family="Microsoft YaHei, system-ui, sans-serif">
+  <rect x="2" y="54" width="162" height="126" rx="9" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="83" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">01 判断</text>
+  <text x="83" y="100" text-anchor="middle" font-size="11.5" fill="var(--text)" style="fill:var(--text)">查 device ID</text>
+  <text x="83" y="118" text-anchor="middle" font-size="11.5" fill="var(--text)" style="fill:var(--text)">对兼容性矩阵</text>
+  <text x="83" y="150" text-anchor="middle" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">看见证据等级</text>
+  <text x="83" y="166" text-anchor="middle" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">✅ / 🟢 / 🟡</text>
+
+  <rect x="185" y="54" width="162" height="126" rx="9" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="266" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">02 准备</text>
+  <text x="266" y="100" text-anchor="middle" font-size="11.5" fill="var(--text)" style="fill:var(--text)">关 Secure Boot</text>
+  <text x="266" y="118" text-anchor="middle" font-size="11.5" fill="var(--text)" style="fill:var(--text)">备好 FAT32 U 盘</text>
+  <text x="266" y="150" text-anchor="middle" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">Turing 另需 GSP</text>
+  <text x="266" y="166" text-anchor="middle" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">并重启一次</text>
+
+  <rect x="368" y="54" width="162" height="126" rx="9" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="449" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">03 制盘</text>
+  <text x="449" y="100" text-anchor="middle" font-size="11.5" fill="var(--text)" style="fill:var(--text)">运行制盘脚本</text>
+  <text x="449" y="118" text-anchor="middle" font-size="11.5" fill="var(--text)" style="fill:var(--text)">生成固件资产</text>
+  <text x="449" y="150" text-anchor="middle" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">usbroot/ 里出现</text>
+  <text x="449" y="166" text-anchor="middle" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">脚本列出的清单</text>
+
+  <rect x="551" y="54" width="162" height="126" rx="9" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="632" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">04 执行</text>
+  <text x="632" y="100" text-anchor="middle" font-size="11.5" fill="var(--text)" style="fill:var(--text)">一次性启动菜单</text>
+  <text x="632" y="118" text-anchor="middle" font-size="11.5" fill="var(--text)" style="fill:var(--text)">空格或回车确认</text>
+  <text x="632" y="150" text-anchor="middle" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">loader.log 出现</text>
+  <text x="632" y="166" text-anchor="middle" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">HANDOFF-OUT</text>
+
+  <rect x="734" y="54" width="162" height="126" rx="9" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="815" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">05 验证</text>
+  <text x="815" y="100" text-anchor="middle" font-size="11.5" fill="var(--text)" style="fill:var(--text)">ssdiag 读回</text>
+  <text x="815" y="118" text-anchor="middle" font-size="11.5" fill="var(--text)" style="fill:var(--text)">同负载对比</text>
+  <text x="815" y="150" text-anchor="middle" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">SS0 / SS1 有效</text>
+  <text x="815" y="166" text-anchor="middle" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">且性能有变化</text>
+
+  <!-- 箭头 -->
+  <line x1="166" y1="117" x2="181" y2="117" stroke="var(--text-faint)" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <line x1="349" y1="117" x2="364" y2="117" stroke="var(--text-faint)" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <line x1="532" y1="117" x2="547" y2="117" stroke="var(--text-faint)" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <line x1="715" y1="117" x2="730" y2="117" stroke="var(--text-faint)" stroke-width="1.5" marker-end="url(#ar1)"/>
+
+  <!-- 顶部说明 -->
+  <text x="450" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)" style="fill:var(--text)">五个阶段，每个阶段都有明确的「过关判据」</text>
+  <text x="450" y="44" text-anchor="middle" font-size="11" fill="var(--text-2)" style="fill:var(--text-2)">卡在某一阶段就停下处理，不要带着未确认的状态往下走</text>
+
+  <!-- 底部提示 -->
+  <rect x="2" y="200" width="894" height="84" rx="8" fill="var(--surface-3)" stroke="var(--border)"/>
+  <text x="18" y="222" font-size="11.5" font-weight="700" fill="var(--text)" style="fill:var(--text)">最容易跳过的一步是 05：</text>
+  <text x="205" y="222" font-size="11.5" fill="var(--text-2)" style="fill:var(--text-2)">EFI 打印全绿只说明事务路径跑完了，不代表驱动加载后覆盖值还在。</text>
+  <text x="18" y="244" font-size="11.5" fill="var(--text-2)" style="fill:var(--text-2)">Ampere / Ada 看「门是否仍开 + SS 值是否被冲回厂值」；Turing 交棒时会主动重锁 PLM，属于正常现象，不能套用前者判据。</text>
+  <text x="18" y="266" font-size="11.5" fill="var(--text-2)" style="fill:var(--text-2)">判断不了就保留 loader.log 原件再求助，它比任何口头描述都有用。</text>
+</g>
+</svg>
+<figcaption><b>图 0-1</b>　五阶段推进路径：每阶段的验收点决定了是否可以进入下一阶段</figcaption>
+</figure>
+
+<h3>0.3 术语速查</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:150px">术语</th><th style="width:290px">简要说明</th><th>为什么对你有用</th></tr></thead>
+<tbody>
+<tr><td><b>家族 / family</b></td><td>按芯片分三组：<code>tu10x</code>（Turing，GTX 16 与 RTX 20）、<code>ga102</code>（Ampere GA10x，RTX 30）、<code>ad102</code>（Ada，RTX 40）</td><td>固件资产按家族打包。选错家族，U 盘里的文件就是另一代卡用的，事务会直接失败</td></tr>
+<tr><td><b>BDF</b></td><td>PCI 总线地址，形如 <code>01:00.0</code> 或 <code>0000:01:00.0</code></td><td>多卡机器必须靠它指定目标卡；诊断工具也用它定位，不接受手填物理地址</td></tr>
+<tr><td><b>PLM</b></td><td>受保护的寄存器写权限门。主机不能直接改写受保护覆盖值</td><td>解锁的本质是把门打开、写值、再交出去。门关着就意味着写不进去</td></tr>
+<tr><td><b>FEAT / SS0 / SS1</b></td><td>速率覆盖寄存器组（Turing 在 <code>0x4096xx</code> 段）。SS0=<code>0x88888888</code>、SS1 低 4 位 <code>0x8</code> 是「覆盖已生效」的读回特征值</td><td>这是系统内唯一可信的成功判据。不看这个，只能靠感觉判断「好像快了」</td></tr>
+<tr><td><b>Booter / V67 载荷</b></td><td>NVIDIA 原厂签名的引导程序与执行载荷，经四写路径完成寄存器改写</td><td>它们来自 NVIDIA 公开包并在本地再生，仓库不分发。这也是为什么要联网制盘</td></tr>
+<tr><td><b>GSP-RM</b></td><td>GPU System Processor 上运行的固件运行模式</td><td>Turing 的 Windows 驱动必须处于 GSP 模式，否则会 TDR 循环或报 Code 43</td></tr>
+<tr><td><b>RTD3 / D3cold</b></td><td>运行时空闲断电，把 GPU 放到最深的省电状态</td><td>Linux 上这是「日志全绿但没提升」的头号原因——断电就把易失解锁抹掉了</td></tr>
+<tr><td><b>GOP</b></td><td>UEFI 图形输出协议，负责启动阶段显示</td><td>部分 AMI 固件在事务后的 GOP 重连阶段卡死，表现为黑屏而不是失败</td></tr>
+<tr><td><b>SSDT / ESP</b></td><td>EFI 系统分区（ESP）</td><td>本工具默认不写 ESP、不改长期启动顺序。看到有人让你改 ESP，那不是官方流程</td></tr>
+<tr><td><b>ssdiag</b></td><td>Windows 侧系统内只读诊断工具，可临时加载签名驱动读寄存器</td><td>它是 05 阶段的主力工具，默认只读，写操作要显式加 <code>--reapply</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>0.4 常见误解</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:330px">常见误解</th><th>实际情况</th></tr></thead>
+<tbody>
+<tr><td>「这是超频工具，能提高游戏帧数」</td><td>解除的是 Tensor 计算发射速率的阉割，收益集中在 AI / 计算负载。游戏帧数不是目标，也可能毫无变化（见 <a href="#s1">01 章</a>）</td></tr>
+<tr><td>「刷一次就永久生效」</td><td>完全易失。断电、冷启动、休眠恢复都可能清掉，每次冷启动要重放（见 <a href="#s4">04 章</a>）</td></tr>
+<tr><td>「RTX 50 系也能用，反正都是 NVIDIA」</td><td>不支持。Blackwell 与 GA100 的引导链与本工具的事务家族不同（见 <a href="#s3">03 章</a>）</td></tr>
+<tr><td>「EFI 屏全绿就成功了」</td><td>只证明事务路径跑完。必须在系统内读回 SS 值，两者要分开汇报（见 <a href="#s7">07 章</a>）</td></tr>
+<tr><td>「Secure Boot 可以留着，加个白名单就行」</td><td>要么关掉，要么给 EFI 自签并让固件信任它。诊断工具内嵌的驱动在 Secure Boot 开启时也会被拒绝加载</td></tr>
+<tr><td>「失败了一次，再跑一遍就好」</td><td>同一个会话内不要重试。固件可能仍在运行、DMA 缓冲仍被占用，必须彻底断电后重来（见 <a href="#s8">08 章</a>）</td></tr>
+<tr><td>「把文件塞到内置硬盘分区，开机自动解锁」</td><td>技术可行但属于自担风险的专业操作，官方不提供自动化脚本。默认交付形态是 U 盘 / 一次性启动菜单</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>0.5 最短路径清单</h3>
+
+<p class="small">前提：你已确认显卡在支持范围内。下面五步只为「第一次跑通」服务，细节见后续各章。</p>
+
+<ul class="cl">
+<li><b>查身份</b>：在目标机执行 <code>nvidia-smi --query-gpu=name,pci.device_id --format=csv</code>，或设备管理器看硬件 ID 里的 <code>DEV_xxxx</code>。</li>
+<li><b>关 Secure Boot</b>：进固件设置关闭，或在自签信任链里放行 EFI。同时关闭「快速启动」，避免关机走休眠路径。</li>
+<li><b>制盘</b>：在目标机解压目录运行 <code>make-usbroot.ps1</code>，让它自己识别代际，不要手猜 <code>-Family</code>。</li>
+<li><b>抄文件</b>：按脚本末尾 <code>expected</code> 清单复制到 FAT32 U 盘根目录，<code>BOOTX64.EFI</code> 放 <code>EFI/BOOT/</code>。</li>
+<li><b>跑事务</b>：一次性启动菜单选 U 盘 → 版本屏按空格 → 自动链回系统 → 跑 <code>ssdiag</code> 看 SS0/SS1。</li>
+</ul>
+
+<div class="callout tip">
+<span class="t">先把基线记下来</span>
+<p>在解锁之前，用固定负载（张量形状、精度、批次大小、功耗设置）跑一次并记录结果。解锁后再跑同一负载。
+没有基线的「感觉快了」无法作为验收，也没法判断收益是否被功耗墙吃掉。</p>
+</div>
+
+<h2 id="s1"><span class="sn">01</span>这是什么工具</h2>
+
+<p class="lead">一句话：它在 NVIDIA 驱动加载之前，于 UEFI 阶段执行一段原厂签名的固件引导链，把消费级 GeForce 上有意限速的
+Tensor 计算发射速率放开，然后交棒给操作系统。不刷 VBIOS，不改硬件，断电即复原。</p>
+
+<h3>1.1 它解决的问题</h3>
+
+<p>NVIDIA 在消费级 GeForce 上对 Tensor 计算吞吐做了限制，同一块硅在专业卡上能跑满，在 GeForce 上只能跑一部分。
+这个限制不在你的驱动设置里，也不在 VBIOS 的可写区域里，而是由受保护的寄存器在初始化阶段决定。</p>
+
+<p>工具的做法是：抢在驱动之前，用 NVIDIA 自己的签名固件链把权限打开，写入速率覆盖值，读回确认，再把原厂签名状态恢复并交棒系统。
+因为写入发生在每次上电的初始化过程中，所以<strong>掉电即失效</strong>，不会留下永久改动。</p>
+
+<h3>1.2 实测收益（来自上游逐卡记录）</h3>
+
+<div class="mini">
+  <div class="m"><div class="h">FP16 / BF16 / TF32</div><div class="v">最高 ≈2.6×</div><div class="n">逐卡差异大，受功耗墙制约</div></div>
+  <div class="m"><div class="h">FP8</div><div class="v">最高 ≈1.9×</div><div class="n">仅 Ada 支持该精度路径</div></div>
+  <div class="m"><div class="h">图像 / 视频生成</div><div class="v">+14~75%</div><div class="n">真实工作流，非微基准</div></div>
+  <div class="m"><div class="h">LLM 推理 prefill</div><div class="v">+16~19%</div><div class="n">decode 约 +5.5%，双卡 MoE 实测</div></div>
+</div>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:180px">卡型（device ID）</th><th style="width:230px">实测结果</th><th>条件与备注</th></tr></thead>
+<tbody>
+<tr><td>RTX 4090M 2757<br><span class="small">Alienware m18 R1</span></td><td>FP16 / BF16 / FP8 约 <b>2 倍</b></td><td>Windows 11；有控制组对照，控制组持平</td></tr>
+<tr><td>RTX 2080 Super 1e81</td><td><b>46 → 68 TFLOPS</b></td><td>v2.1.3；0x91 家族修复后的验证点</td></tr>
+<tr><td>RTX 2080 Ti 1e07<br><span class="small">原厂 11GB</span></td><td><b>60.31 → 89.57 TFLOPS</b></td><td>AMD 平台 + Linux 专有驱动存活；首份非 22G 改卡的全链记录</td></tr>
+<tr><td>RTX 4060 Laptop 28e0</td><td>FP16 +49.4% / BF16 +56.9%</td><td>Insyde BIOS V1.20；组间离散提示可能撞热限</td></tr>
+<tr><td>RTX 4080 SUPER 2702<br><span class="small">双卡 TRX40</span></td><td>cuBLAS 1.75× / 1.78× / 1.66×<br>LLM prefill +16~19%、decode +5.5%</td><td>首例双 AD103 单次引导全过；FP16acc 对照组持平</td></tr>
+<tr><td>RTX 3090 2204</td><td>ComfyUI bf16 工作流 +30~40%</td><td>双卡 X99-T8，<b>仅系统侧证据</b>，日志未附</td></tr>
+<tr><td>RTX 3090 20GB（OEM 改容量）</td><td>FP16 +48.9% / TF32 +79.9%</td><td>已撞功耗墙形态；device ID 待回传</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout warn">
+<span class="t">不要把这些倍率当成你机器的预期</span>
+<p>上述数字来自不同平台、不同散热、不同功耗设置。实际收益首先受<strong>功耗墙</strong>限制：发射率放开后算力上去了，但功耗封顶没变，
+卡会更早降频，最终净收益可能远低于峰值。LLM 那组是双卡 MoE 的真实对照，不是微基准外推。</p>
+</div>
+
+<h3>1.3 明确不支持的情况</h3>
+
+<ul>
+<li><b>Pascal 及更早</b>（GTX 10 系及以前）：没有对应的事务路径。</li>
+<li><b>GA100</b>（A100 <code>0x20b0</code> / <code>0x20c2</code>、A30 <code>0x20f1</code>）：不在支持路径中。</li>
+<li><b>Hopper / Blackwell</b>（含 RTX 50 系）：引导链与事务家族不同。</li>
+</ul>
+
+<p>支持家族内的移动版、工作站版、CMP 矿卡与魔改卡，走所属家族的同一条路径——它们共用 Booter 与载荷资产。</p>
+
+<h2 id="s2"><span class="sn">02</span>原理与家族路由</h2>
+
+<h3>2.1 执行链</h3>
+
+<p>UEFI 应用接管后按固定顺序推进，每一步都有读回，任一步的失败都会中止而不是「继续试试」：</p>
+
+<figure class="fig">
+<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="解锁执行链六步图">
+<defs>
+<marker id="ar2" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+<path d="M0,0 L9,3.5 L0,7 z" fill="var(--text-faint)"/>
+</marker>
+</defs>
+<g font-family="Microsoft YaHei, system-ui, sans-serif">
+  <text x="450" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)" style="fill:var(--text)">从 UEFI 到操作系统：六步，每步都有读回验收</text>
+
+  <!-- 步骤条 -->
+  <rect x="6" y="48" width="138" height="74" rx="8" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="75" y="70" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--text)" style="fill:var(--text)">① 枚举与选卡</text>
+  <text x="75" y="88" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">读 device ID</text>
+  <text x="75" y="103" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">按家族路由</text>
+
+  <rect x="157" y="48" width="138" height="74" rx="8" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="226" y="70" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--text)" style="fill:var(--text)">② SEC2 scrubber</text>
+  <text x="226" y="88" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">清理安全段</text>
+  <text x="226" y="103" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">非致命警告</text>
+
+  <rect x="308" y="48" width="138" height="74" rx="8" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="377" y="70" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--text)" style="fill:var(--text)">③ FWSEC / WPR2</text>
+  <text x="377" y="88" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">建立受保护窗口</text>
+  <text x="377" y="103" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">加载签名 booter</text>
+
+  <rect x="459" y="48" width="138" height="74" rx="8" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="528" y="70" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--text)" style="fill:var(--text)">④ V67 四写载荷</text>
+  <text x="528" y="88" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">打开 PLM 门</text>
+  <text x="528" y="103" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">写速率覆盖值</text>
+
+  <rect x="610" y="48" width="138" height="74" rx="8" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="679" y="70" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--text)" style="fill:var(--text)">⑤ 读回裁决</text>
+  <text x="679" y="88" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">按家族判据</text>
+  <text x="679" y="103" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">不是「跑完即成功」</text>
+
+  <rect x="761" y="48" width="133" height="74" rx="8" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="827" y="70" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--text)" style="fill:var(--text)">⑥ 交棒</text>
+  <text x="827" y="88" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">恢复原厂签名</text>
+  <text x="827" y="103" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">链回 Windows/Linux</text>
+
+  <line x1="144" y1="85" x2="153" y2="85" stroke="var(--text-faint)" stroke-width="1.4" marker-end="url(#ar2)"/>
+  <line x1="295" y1="85" x2="304" y2="85" stroke="var(--text-faint)" stroke-width="1.4" marker-end="url(#ar2)"/>
+  <line x1="446" y1="85" x2="455" y2="85" stroke="var(--text-faint)" stroke-width="1.4" marker-end="url(#ar2)"/>
+  <line x1="597" y1="85" x2="606" y2="85" stroke="var(--text-faint)" stroke-width="1.4" marker-end="url(#ar2)"/>
+  <line x1="748" y1="85" x2="757" y2="85" stroke="var(--text-faint)" stroke-width="1.4" marker-end="url(#ar2)"/>
+
+  <!-- 家族判据 -->
+  <rect x="6" y="140" width="888" height="66" rx="8" fill="var(--surface-3)" stroke="var(--border)"/>
+  <text x="20" y="161" font-size="11.5" font-weight="700" fill="var(--text)" style="fill:var(--text)">⑤ 的判据三族不同：</text>
+  <text x="150" y="161" font-size="11" fill="var(--text-2)" style="fill:var(--text-2)">Ada（40 系）看 marker + HALT + PLM 与选择器读回，FLR 后还要查 AON 状态</text>
+  <text x="20" y="180" font-size="11" fill="var(--text-2)" style="fill:var(--text-2)">Ampere（30 系）以 <tspan font-weight="700" fill="var(--text)" style="fill:var(--text)">PLM 翻转</tspan>验证执行，再看选择器与交棒状态；Turing（20/16 系）写完选择器后主动<tspan font-weight="700" fill="var(--text)" style="fill:var(--text)">重锁 PLM</tspan>并跳过 FLR</text>
+  <text x="20" y="198" font-size="11" fill="var(--text-2)" style="fill:var(--text-2)">所以「门关了」对 Turing 是正常交棒态，对 Ampere/Ada 才意味着失效——这条区分错了会误判一切。</text>
+
+  <!-- 底部提示 -->
+  <rect x="6" y="220" width="888" height="66" rx="8" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="20" y="241" font-size="11.5" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">为什么必须在驱动之前做</text>
+  <text x="20" y="261" font-size="11" fill="var(--text-2)" style="fill:var(--text-2)">这些寄存器一旦被驱动初始化流程编程过，普通的主机访问就被锁在门后。等到系统起来再想写，只能靠内核驱动，而本工具刻意不走那条路。</text>
+  <text x="20" y="279" font-size="11" fill="var(--text-2)" style="fill:var(--text-2)">代价就是易失性：每次上电重新初始化，就得重新执一次。这也是它不刷 VBIOS、风险可逆的根本原因。</text>
+</g>
+</svg>
+<figcaption><b>图 2-1</b>　执行链六步：读回验收贯穿全程，三族的成功判据并不相同</figcaption>
+</figure>
+
+<h3>2.2 家族路由表</h3>
+
+<p>制盘与运行都按 PCI device ID 落在哪个段来决定用哪套资产。型号名只用于对照实测记录，<strong>不参与路由决策</strong>。</p>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:150px">家族</th><th style="width:200px">代号 / 别名</th><th style="width:290px">device ID 段</th><th>覆盖范围</th></tr></thead>
+<tbody>
+<tr><td><b>Turing</b></td><td><code>tu10x</code> · <code>rtx20</code> · <code>20</code></td><td><code>0x1e02..0x1fff</code><br><code>0x2182..0x21d1</code></td><td>GTX 16 系列、RTX 20 系列</td></tr>
+<tr><td><b>Ampere GA10x</b></td><td><code>ga102</code> · <code>rtx30</code> · <code>30</code></td><td><code>0x2200..0x22ff</code><br><code>0x2400..0x25ff</code></td><td>RTX 30 系列（GA102/103/104/106/107）</td></tr>
+<tr><td><b>Ada</b></td><td><code>ad102</code> · <code>rtx40</code> · <code>40</code></td><td><code>0x2600..0x28ff</code></td><td>RTX 40 系列</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout tip">
+<span class="t">两个容易踩的细节</span>
+<p><b>GA102 实际收口到 0x2200..0x223f。</b>旧版段尾 <code>0x22..ff</code> 经查已无 GA102 核心，只剩音频功能与 ARM 块，因此运行时段被收窄；
+制盘脚本的白名单仍按 <code>0x22xx</code> 全段判断。两者不冲突，但看文档时别以为是笔误。</p>
+<p><b>同族新 ID 会自动放行。</b>未单列的 device ID 继承所属家族的证据等级，所以「我的 4070 变体没在表里」不等于不能用，
+只等于没人给它单独做过记录。</p>
+</div>
+
+<h3>2.3 多卡机器怎么指定目标</h3>
+
+<p>默认行为是<strong>处理所有受支持的卡</strong>，已解锁或不支持的卡跳过，单卡失败就走失败路径、不重试该卡。只想动其中一张时，
+必须在 U 盘根放一个 <code>tx-select-bdf.txt</code>，内容写实际 BDF：</p>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>tx-select-bdf.txt</span></div>
+<pre>01:00.0
+<span class="c"># 或完整形式 0000:01:00.0 —— 解析失败或目标缺失时会中止，不会退而求其次去动别的卡</span></pre>
+</div>
+
+<p>BDF 必须来自现场清点（Windows 看设备管理器「位置」或 <code>nvidia-smi --query-gpu=pci.bus_id</code>，Linux 用 <code>lspci -nn</code>），
+不要照抄别人的示例。</p>
+
+<h2 id="s3"><span class="sn">03</span>兼容性与逐卡证据</h2>
+
+<h3>3.1 系列支持与前置条件</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:170px">系列</th><th style="width:320px">支持情况</th><th>额外前置条件</th></tr></thead>
+<tbody>
+<tr><td><b>GTX 16 · Turing</b></td><td>理论兼容，<b>尚待本工具实机验证</b></td><td>GSP-RM（同 Turing）</td></tr>
+<tr><td><b>RTX 20 · Turing</b></td><td>全系兼容；0x91 家族已定位并修复，近期驱动复位问题在查</td><td>GSP-RM，启用后<b>必须重启</b></td></tr>
+<tr><td><b>RTX 30 · Ampere GA10x</b></td><td>全系兼容，支持笔记本与台式</td><td>无需 Turing 的 Windows 注册表前置</td></tr>
+<tr><td><b>RTX 40 · Ada</b></td><td>全系兼容，支持笔记本与台式</td><td>入口时 GPU 有电且完成初始化</td></tr>
+<tr><td>Pascal 及更早 / GA100 / RTX 50</td><td class="bad">不支持</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>3.2 证据等级怎么读</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:70px">等级</th><th>含义</th></tr></thead>
+<tbody>
+<tr><td class="ok">✅</td><td><b>本工具有实机证据。</b>如果只有 EFI 成功、或只有系统侧验证，原文会单独注明——两种情况不等价</td></tr>
+<tr><td class="ok">🟢</td><td><b>上游或社区有同链硅验证</b>，不等于本工具在该型号上逐卡验证过</td></tr>
+<tr><td class="warnc">🟡</td><td><b>代码路径存在</b>，完整实机验证待补充。可以用，但要自己承担首跑风险并回传日志</td></tr>
+<tr><td class="bad">❌</td><td>不支持</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout">
+<span class="t">「device ID 能进事务路径」≠「该型号已实测」</span>
+<p>这是读兼容性表最容易混淆的一点。路由只按 device ID 段判断，任何落在段内的卡都会被处理；
+表里的等级说的是<b>有没有人拿这块卡跑通并把证据归档</b>。你的型号是 🟢 不代表会失败，只代表没人给它单独记录过。</p>
+</div>
+
+<h3>3.3 主流型号速查</h3>
+
+<p class="small">下表按家族整理上游设备矩阵中的常见型号。未列出的同族 device ID 继承该家族的证据等级。</p>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:120px">架构</th><th style="width:330px">型号 · device ID</th><th style="width:90px">等级</th><th>备注</th></tr></thead>
+<tbody>
+<tr><td rowspan="8"><b>Ada</b><br><span class="small">RTX 40</span></td><td>4090 <code>2684</code> · 4070TiS <code>2689</code></td><td class="ok">✅</td><td>4090 全链 + Windows 读回 + 性能验证；2689 有系统侧证据但 EFI 日志未归档</td></tr>
+<tr><td>4090D <code>2685</code> · TITAN Ada <code>2681</code> · PG137 <code>26af</code></td><td class="ok">🟢</td><td>2681/26af 为 pci.ids 在档的 ES/原型硅</td></tr>
+<tr><td>4080S <code>2702</code> · 4080 <code>2704</code> · 4070TiS <code>2705</code> · 4070 <code>2709</code> · 4090M <code>2757</code></td><td class="ok">✅</td><td>2702 有双独立点，含首例双 AD103 单次引导全过</td></tr>
+<tr><td>4090 Laptop <code>2717</code> · 4070 <code>2786</code> · 4060Ti <code>2788</code> · 4080M <code>27a0/27e0</code></td><td class="ok">🟢</td><td>继承上游硅验证层级</td></tr>
+<tr><td>4070Ti <code>2782</code></td><td class="warnc">🟡</td><td>首份实机日志中，<b>回放模式出现 Windows 侧黑屏</b>（三屏独显直连），排查中</td></tr>
+<tr><td>4070S <code>2783</code></td><td class="ok">✅</td><td>回放 + 解锁读回 + FLR 存活 + Windows 性能</td></tr>
+<tr><td>4060Ti <code>2803/2805</code> · 4060L <code>28a0</code> · 4060L <code>28e0</code> · 4050M <code>28a1</code></td><td class="ok">✅</td><td>覆盖 Intel / AMD / 无内显单卡 / 双卡环境</td></tr>
+<tr><td>4060 <code>2882</code> · 4060L <code>28e1</code> · 4060Ti <code>2808</code> · 4070L <code>2820/2860</code></td><td class="ok">🟢🟡</td><td>2820 为官方 4070L ID（魔改卡复用同 ID），EFI 实机结果待验证</td></tr>
+
+<tr><td rowspan="6"><b>Ampere</b><br><span class="small">RTX 30</span></td><td>3080 <code>2206</code> · 3080 LHR <code>2216</code></td><td class="ok">✅</td><td>固件读回 + Windows 性能验证</td></tr>
+<tr><td>3090 <code>2204</code></td><td class="ok">✅</td><td><b>仅系统侧证据</b>（双卡 X99-T8，日志未附）；另有 ASUS X570 重连卡死记录</td></tr>
+<tr><td>3090Ti <code>2203</code> · 3080 12G <code>220a</code> · 3080Ti <code>2208</code> · CMP 90HX <code>220d</code> · ES 段 <code>222b/222f/2205/2207</code></td><td class="ok">🟢</td><td>段内全放行；ES/取消 SKU 同为 GA102 核心</td></tr>
+<tr><td>3080Ti Laptop <code>2420</code> · 3060Ti <code>2489</code> · 3070 Laptop <code>249d</code> · 3060 <code>2504</code> / <code>2520</code></td><td class="ok">✅</td><td>249d 在无 MUX 混合输出平台有「进系统无收益」反馈；2504 的 AMI X470 需 <code>no-reconnect.txt</code></td></tr>
+<tr><td>3070 <code>2484–248c</code></td><td class="warnc">⚠</td><td><b>雷电 eGPU 下 EFI 通过但 Windows 不保留解锁</b>；非雷电环境正常</td></tr>
+<tr><td>3050 <code>2582/2583/2584</code> · RTX 2050 <code>25a9</code> · MX570 <code>25a6</code> · 3050L <code>25a2</code></td><td class="warnc">🟡</td><td>25a2 首份日志报 wait_plm 超时，判定载荷大概率已执行（入口竞态），待补 Windows 读回</td></tr>
+
+<tr><td rowspan="4"><b>Turing</b><br><span class="small">RTX 20 / 16</span></td><td>2070 <code>1f07</code> · 2060S <code>1f06</code> · 2060 12G <code>1f03</code> · 2070L <code>1f14</code></td><td class="ok">✅</td><td>1f03 曾在 FWSEC 阶段 EXCI 失败，定位为 4 GiB 边界 DMA 不可达，<b>已修复</b></td></tr>
+<tr><td>2080Ti <code>1e07</code> · 2080S <code>1e81</code> · 2080 <code>1e87</code></td><td class="ok">✅</td><td>1e07 为原厂 11GB 形态，AMD 平台 + Linux 专有驱动存活</td></tr>
+<tr><td>TITAN RTX <code>1e02</code> · TU102GL/TU104M/TU117 等裸 die</td><td class="ok">🟢</td><td>段内可跑，首报升级</td></tr>
+<tr><td>GTX 16 系（TU116 / TU117）</td><td class="ok">🟢</td><td><b>仍待本工具实机验证</b>，属「可试但无本工具证据」</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>3.4 已知问题与例外</h3>
+
+<p class="small">以下条目取自上游 issue 与讨论区，属于<strong>尚未收敛</strong>的问题。遇到对应形态时先看这里，不要当成自己的操作失误。</p>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:200px">形态</th><th>表现与现状</th></tr></thead>
+<tbody>
+<tr><td>TU106 + 新驱动</td><td>驱动 621.01（GSP 620.67.01）与 630.20（GSP 630.03）下，Windows 侧出现 <code>nvlddmkm</code> PF FLR 复位把覆盖值冲回厂值。1f06、1f07 两个数据点，调查中</td></tr>
+<tr><td>双卡 2080 Ti + NVLink</td><td>事务双成，但 Windows 侧双卡 Code 12（资源冲突），#116</td></tr>
+<tr><td>TITAN RTX + Linux</td><td>0x0B / 0x11 错误码，#57</td></tr>
+<tr><td>3080 20GB 魔改卡 + Z390P</td><td>GSP devinit 把 SS0/SS1 打回厂值。注意：<b>30 系不应开 Turing 的 GSP 注册表开关</b>，关掉后待复测</td></tr>
+<tr><td>4060Ti 2782 + 三屏独显直连</td><td>回放模式出现 Windows 侧黑屏，#105</td></tr>
+<tr><td>雷电 / Thunderbolt eGPU</td><td>隧道重建、hot reset / PERST# 或坞供电管理都可能在交棒后复位并清除解锁。不作为保证生效的环境</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="s4"><span class="sn">04</span>前置条件与风险</h2>
+
+<h3>4.1 必需条件</h3>
+
+<ul class="cl">
+<li><b>UEFI 启动</b>：目标机必须以 UEFI 模式引导，不能是 legacy/CSM 引导（CSM 关闭是多数成功案例的共同点）。</li>
+<li><b>Secure Boot 关闭</b>，或为 EFI 自签并让固件信任该证书。二者必须满足其一。</li>
+<li><b>一个 FAT32 U 盘</b>，里面原有文件先备份——制盘要占用根目录和 <code>EFI/BOOT/</code>。</li>
+<li><b>入口时 GPU 有电并完成初始化</b>：D3cold 状态下 BAR0 全为 <code>0xffffffff</code>，读不到寄存器，事务没法开始。</li>
+<li><b>Turing 额外条件</b>：Windows 侧 GSP 固件必须已运行（见 4.3）。</li>
+</ul>
+
+<h3>4.2 入口状态决定成败</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:250px">进入 U 盘时的状态</th><th style="width:150px">能否运行</th><th>处理方式</th></tr></thead>
+<tbody>
+<tr><td>独显直连，GPU 有电且已初始化</td><td class="ok">可以运行</td><td>首选形态。进入系统后仍需验证，不能只凭 EFI 成功</td></tr>
+<tr><td>混合输出，dGPU 有电且寄存器可读</td><td class="warnc">可以尝试</td><td>核对交棒前后状态；部分无 MUX 平台会出现「进系统无收益」</td></tr>
+<tr><td>dGPU 处于 D3cold，BAR0 全 <code>0xffffffff</code></td><td class="bad">无法读取</td><td>换一条能给 dGPU 上电并初始化的启动路径。工具<b>不能</b>通过 ACPI <code>_PS0</code> / PR3 给完全断电的卡上电</td></tr>
+<tr><td>休眠恢复 / D3 门控入口</td><td class="warnc">不可靠</td><td>优先走「重启」而不是「关机」（关机会走快速启动的休眠路径）；不要仅凭 EFI 成功判断系统内仍有效</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>4.3 Turing（20 / 16 系）的 GSP 前置</h3>
+
+<p>Turing 的 Windows 驱动必须运行在 GSP 模式下，否则 legacy 初始化可能在被解锁的卡上 TDR 循环或报 Code 43。
+在<strong>目标 Windows</strong> 的<u>管理员</u> PowerShell 中执行一次，然后重启：</p>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>管理员 PowerShell · 目标机</span></div>
+<pre><span class="p">PS&gt;</span> .\enable-turing-unlock.ps1
+
+<span class="c"># 撤销该设置（如需）</span>
+<span class="p">PS&gt;</span> .\enable-turing-unlock.ps1 -Remove
+
+<span class="c"># 重启后确认：EnableGpuFirmware=1，且 GSP 固件版本不是 N/A</span>
+<span class="p">PS&gt;</span> nvidia-smi -q | Select-String -Pattern "GSP|Firmware"</pre>
+</div>
+
+<div class="callout warn">
+<span class="t">三条容易忽略的限制</span>
+<p><b>必须重启。</b>休眠恢复不会重新初始化驱动，改完不重启等于没改。</p>
+<p><b>脚本只服务 Turing。</b>它只给 Turing 显示设备设 <code>EnableGpuFirmware=1</code>。30 / 40 系不需要、也<b>不应该</b>开这个开关——已有一例 3080 20GB 魔改卡因此被 devinit 打回厂值。</p>
+<p><b>Linux 不要跑这个脚本。</b>Linux 走 GSP-RM 运行态检查：专有驱动 545+ 默认启用，但可能被 <code>NVreg_EnableGpuFirmware=0</code> 关掉，以实际运行态为准。</p>
+</div>
+
+<h3>4.4 风险清单</h3>
+
+<div class="callout danger">
+<span class="t">这些是真实的代价，不是免责声明套话</span>
+<p><b>关闭 Secure Boot 会降低整机启动链的安全性。</b>它保护的是「谁能在我开机时运行代码」。为了跑一次解锁而长期关着，
+等于长期放弃这层保护。用完请恢复原状。</p>
+<p><b>解锁是易失的，但操作不是无风险的。</b>黑屏、事务失败、驱动异常本身不能证明硬件永久损坏，也不能代替恢复后的设备检查。
+若事务中途卡死且在同一会话内反复重试，固件可能仍在运行、DMA 缓冲仍被占用，风险会叠加。</p>
+<p><b>与超频组合会突破原厂功耗与温度包络。</b>发射率放开后功耗上升，散热与供电余量不足时可能触发热限甚至硬件损伤，由使用者承担。</p>
+<p><b>这不是官方支持的功能。</b>它依赖对未公开寄存器的逆向理解，厂商驱动更新可能随时改变行为（参见 TU106 新驱动的 FLR 复位问题）。</p>
+</div>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:190px">风险项</th><th style="width:110px">可能性</th><th>缓解办法</th></tr></thead>
+<tbody>
+<tr><td>Secure Boot 长期关闭</td><td class="bad">必然</td><td>只在需要时关；完成后恢复开启，或改用自签 + 信任的窄化方案</td></tr>
+<tr><td>事务后黑屏 / 卡死</td><td class="warnc">部分 AMI 平台常见</td><td>放 <code>no-reconnect.txt</code> 跳过 GOP 重连；彻底断电后重来，不要同会话重试</td></tr>
+<tr><td>驱动加载异常（Code 43 / TDR）</td><td class="warnc">Turing 未开 GSP 时高发</td><td>先做 GSP 前置并重启；必要时 DDU 重装驱动</td></tr>
+<tr><td>进系统后无收益</td><td class="warnc">混合输出 / RTD3 平台</td><td>先用 ssdiag 读回判断是「被冲回」还是「本来就没写进去」，再对症处理</td></tr>
+<tr><td>性能提升不及预期</td><td class="ok">常见</td><td>先确认撞功耗墙：观察 Board Power、Hot Spot 与限频原因</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="s5"><span class="sn">05</span>制作启动 U 盘</h2>
+
+<p class="lead">制盘的本质是：把 NVIDIA 公开包里的固件在<strong>本地</strong>下载、校验、抽取，再生成这块卡需要的六个载荷文件。
+仓库不分发这些固件，所以首次生成必须联网，且校验失败时应当停下而不是换版本。</p>
+
+<h3>5.1 环境要求</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:170px">平台</th><th style="width:250px">要求</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>Windows</td><td>PowerShell 5+</td><td>发布包自带 <code>make-usbroot.ps1</code>；脚本仅用 <code>Invoke-WebRequest</code></td></tr>
+<tr><td>Linux / WSL / Git Bash</td><td>glibc ≥ 2.34（Ubuntu 22.04+ / Debian 12+）、bash 4+、curl 或 wget</td><td>用 <code>make-usbroot.sh</code>；预编译的 assets 二进制依赖该 glibc 下限</td></tr>
+<tr><td>网络</td><td>首次生成需联网</td><td>下载 NVIDIA kernel module source 与（Turing 需要）引导归档，逐字节按 SHA-256 校验</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>5.2 在目标机上制盘（推荐）</h3>
+
+<p>不带任何参数运行时，脚本会枚举本机的 NVIDIA 显卡，<strong>只生成检测到的那几个家族</strong>的固件。这是最不容易出错的方式。</p>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>Windows PowerShell · 解压目录内</span></div>
+<pre><span class="p">PS&gt;</span> .\make-usbroot.ps1
+
+<span class="c"># 输出：.\usbroot\ 平铺放所有生成文件，.\inputs\ 放下载与抽取中间文件</span></pre>
+</div>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>Linux / WSL / Git Bash</span></div>
+<pre><span class="p">$</span> bash make-usbroot.sh</pre>
+</div>
+
+<h3>5.3 在另一台机器上制盘</h3>
+
+<p>制盘机没有目标卡时，必须显式指定家族，否则脚本会因「本机没有 RTX 20/30/40」直接报错：</p>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>异机制盘 · 三个家族别名</span></div>
+<pre><span class="c"># RTX 40 系（Ada）</span>
+<span class="p">PS&gt;</span> .\make-usbroot.ps1 -Family 40
+<span class="c"># RTX 30 系（Ampere）</span>
+<span class="p">PS&gt;</span> .\make-usbroot.ps1 -Family 30
+<span class="c"># RTX 20 / GTX 16（Turing）</span>
+<span class="p">PS&gt;</span> .\make-usbroot.ps1 -Family 20
+
+<span class="c"># 三代打包同一张盘，服务多种卡（文件是各家族清单的并集）</span>
+<span class="p">PS&gt;</span> .\make-usbroot.ps1 -Family all
+
+<span class="c"># Linux 版等价写法</span>
+<span class="p">$</span> bash make-usbroot.sh --family all</pre>
+</div>
+
+<div class="callout warn">
+<span class="t"><code>-SkipGspCheck</code> 只跳过制盘机检查，不豁免目标机前置</span>
+<p>异机制盘且制盘机没有 Turing 卡时，脚本的 GSP 检查无法进行，用 <code>-SkipGspCheck</code>（bash：<code>--skip-gsp-check</code>）跳过。
+但<strong>目标机的 GSP 前置仍然必须满足</strong>。不要用这个开关把没准备好的目标机硬推过去。</p>
+</div>
+
+<h3>5.4 输出目录与 U 盘布局</h3>
+
+<p>脚本把文件平铺输出到 <code>usbroot/</code>，里面<strong>同时包含抽取中间文件</strong>。凡是复制到 U 盘的，只认脚本末尾打印的
+<code>expected</code> 清单，不要整个目录拖过去。</p>
+
+<figure class="fig">
+<svg viewBox="0 0 900 372" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="U 盘目录布局示意图">
+<g font-family="Microsoft YaHei, system-ui, sans-serif">
+  <text x="450" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)" style="fill:var(--text)">FAT32 U 盘 · 根目录结构（F = 家族标识）</text>
+
+  <!-- 分区条 -->
+  <rect x="60" y="42" width="780" height="30" rx="6" fill="var(--brand-soft)" stroke="var(--brand)"/>
+  <text x="450" y="62" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--brand-ink)" style="fill:var(--brand-ink)">U 盘 · FAT32 分区（原有文件先备份，不要格式化未确认的卷）</text>
+
+  <!-- EFI 目录 -->
+  <rect x="60" y="84" width="300" height="128" rx="7" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="76" y="106" font-size="12" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">EFI/BOOT/</text>
+  <text x="76" y="128" font-size="11.5" fill="var(--text)" style="fill:var(--text)">BOOTX64.EFI</text>
+  <text x="76" y="148" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">UEFI 应用本体。替换已有的同名文件前</text>
+  <text x="76" y="164" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">先备份；不要复制到系统 ESP</text>
+  <text x="76" y="190" font-size="10.5" fill="var(--danger)" style="fill:var(--danger)">来源：发布包的 BOOTX64.EFI</text>
+  <text x="76" y="206" font-size="10.5" fill="var(--danger)" style="fill:var(--danger)">（源码构建时为 loader.efi 改名）</text>
+
+  <!-- 根目录文件 -->
+  <rect x="380" y="84" width="460" height="128" rx="7" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="396" y="106" font-size="12" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">U 盘根目录 · 家族通用六个文件</text>
+  <text x="396" y="128" font-size="11" fill="var(--text)" style="fill:var(--text)">booter_load_F.bin　gsp_boot_F.bin　gsp_boot_desc_F.bin</text>
+  <text x="396" y="146" font-size="11" fill="var(--text)" style="fill:var(--text)">fwimage_F.bin　fwsignature_F.bin　v67-F-four-plm.bin</text>
+  <text x="396" y="170" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">缺 v67-F-four-plm.bin 会进入「回放模式」——不执行解锁载荷，</text>
+  <text x="396" y="186" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">但仍会断开驱动、执行签名固件并可能复位 GPU。回放不是只读检查。</text>
+  <text x="396" y="204" font-size="10.5" fill="var(--ok)" style="fill:var(--ok)">运行后还会生成 loader.log —— 下次运行前先另存</text>
+
+  <!-- 家族附加 -->
+  <rect x="60" y="226" width="380" height="94" rx="7" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="76" y="248" font-size="12" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">家族附加文件（按实际家族选其一）</text>
+  <text x="76" y="270" font-size="11" fill="var(--text)" style="fill:var(--text)">Ada / Ampere（40 / 30 系）：scrubber_ad10x.bin</text>
+  <text x="76" y="290" font-size="11" fill="var(--text)" style="fill:var(--text)">Turing（20 / 16 系）：sec2_bl_tu10x.bin</text>
+  <text x="76" y="310" font-size="11" fill="var(--text)" style="fill:var(--text)">Turing 另存 gsp-gate.txt 作为构建记录</text>
+
+  <!-- 不要复制 -->
+  <rect x="460" y="226" width="380" height="94" rx="7" fill="var(--danger-soft)" stroke="var(--danger)"/>
+  <text x="476" y="248" font-size="12" font-weight="700" fill="var(--danger)" style="fill:var(--danger)">不要复制的东西</text>
+  <text x="476" y="270" font-size="11" fill="var(--text-2)" style="fill:var(--text-2)">抽取中间文件、inputs/ 里的下载包、</text>
+  <text x="476" y="288" font-size="11" fill="var(--text-2)" style="fill:var(--text-2)">别家族的资产（除非用了 -Family all）、</text>
+  <text x="476" y="306" font-size="11" fill="var(--text-2)" style="fill:var(--text-2)">以及任何标记文件（普通使用不需要）</text>
+
+  <!-- 底部 -->
+  <rect x="60" y="336" width="780" height="30" rx="6" fill="var(--surface-3)" stroke="var(--border)"/>
+  <text x="450" y="356" text-anchor="middle" font-size="11" fill="var(--text-2)" style="fill:var(--text-2)">单一构建内不要混家族；唯一允许的多家族形态是显式 -Family all 打出的完整并集</text>
+</g>
+</svg>
+<figcaption><b>图 5-1</b>　U 盘布局：根目录放固件、<code>EFI/BOOT/</code> 放启动程序，中间文件不外传</figcaption>
+</figure>
+
+<h3>5.5 家族文件清单</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:250px">文件</th><th style="width:260px">用途</th><th>适用</th></tr></thead>
+<tbody>
+<tr><td><code>BOOTX64.EFI</code></td><td>启动程序，放 <code>EFI/BOOT/</code></td><td>全部</td></tr>
+<tr><td><code>booter_load_F.bin</code></td><td>Booter bundle（BTL1 格式）</td><td>全部</td></tr>
+<tr><td><code>gsp_boot_F.bin</code><br><code>gsp_boot_desc_F.bin</code></td><td>GSP 引导段与 v5 描述符</td><td>全部</td></tr>
+<tr><td><code>fwimage_F.bin</code><br><code>fwsignature_F.bin</code></td><td>GSP-RM 镜像与原厂签名</td><td>全部</td></tr>
+<tr><td><code>v67-F-four-plm.bin</code></td><td><b>解锁载荷</b>。缺失即进入回放模式</td><td>全部</td></tr>
+<tr><td><code>scrubber_ad10x.bin</code></td><td>SEC2 scrubber</td><td>Ada / Ampere</td></tr>
+<tr><td><code>sec2_bl_tu10x.bin</code></td><td>FWSEC 所需引导段</td><td>Turing</td></tr>
+<tr><td><code>gsp-gate.txt</code></td><td>制盘时的 GSP 检查记录</td><td>Turing</td></tr>
+<tr><td><code>loader.log</code></td><td>运行后产生的阶段日志</td><td>运行后生成</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>5.6 中国大陆网络环境</h3>
+
+<p>上游在 2026-11-01 实测过这一场景，结论对国内用户很实用：</p>
+
+<ul>
+<li><code>raw.githubusercontent.com</code> 被阻断。<b>但这不是死路</b>：Turing 引导归档的抓取会自动依次回退到 jsDelivr CDN 与代理传输，
+是同一个对象、按钉定的 SHA-256 逐字节把关，所以换源不影响可信度。</li>
+<li><code>download.nvidia.com</code> 与 <code>archive.cachyos.org</code> 当前可直连，暂无镜像回退。</li>
+<li><b>离线路径是官方认可的</b>：任何钉定的文件都可以事先弄到手，直接放进 <code>inputs/</code>，哈希匹配就会被接受。</li>
+</ul>
+
+<div class="callout tip">
+<span class="t">不要用「换个版本试试」来绕过下载失败</span>
+<p>校验失败或下载失败时，正确动作是<b>换传输源或离线投放</b>，不是换固件版本或关掉校验。固件版本与载荷是配套的，
+混用会产生难以定位的失败。</p>
+<p>Windows 下若 <code>Invoke-WebRequest</code> 报 TLS 错误，改用 WSL 或 Git Bash 跑 bash 版 maker。</p>
+</div>
+
+<h2 id="s6"><span class="sn">06</span>启动、事务与交棒</h2>
+
+<h3>6.1 进入方式</h3>
+
+<ol>
+<li>从系统里选「<b>重启</b>」，然后进固件的一次性启动菜单（通常 F12 / F11 / F8，视厂商而定），选 U 盘。
+不要用「关机再开机」，因为快速启动会让关机实际走休眠路径。</li>
+<li>笔记本优先切到<b>独显直连</b>。混合输出可以试，但要多核对一次交棒前后状态。</li>
+</ol>
+
+<h3>6.2 版本屏的按键语义</h3>
+
+<div class="callout">
+<span class="t">只有空格或回车会继续</span>
+<p>版本屏显示后，按<b>空格或回车</b>才执行事务。<b>其他任何键、或 30 秒不操作，都会中止事务并交回系统引导器</b>——
+这是刻意的安全设计，不是超时 bug。中止时没有 GPU 写入。</p>
+</div>
+
+<p>事务执行期间，目标 GPU 可能出现<strong>黑屏或冻结在最后一帧</strong>，属于正常现象：loader 会断开 GOP 句柄，
+让系统引导器自己去重建显示。看到黑屏不要急着断电，先等它完成链回。</p>
+
+<figure class="fig">
+<svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="启动时序图">
+<defs>
+<marker id="ar3" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+<path d="M0,0 L9,3.5 L0,7 z" fill="var(--text-faint)"/>
+</marker>
+</defs>
+<g font-family="Microsoft YaHei, system-ui, sans-serif">
+  <text x="450" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)" style="fill:var(--text)">从按下电源到进入系统：谁在什么时候做决定</text>
+
+  <!-- 时间轴 -->
+  <line x1="40" y1="120" x2="860" y2="120" stroke="var(--text-faint)" stroke-width="1.5"/>
+
+  <!-- 时间点 -->
+  <circle cx="110" cy="120" r="13" fill="var(--surface-2)" stroke="var(--brand)" stroke-width="2"/>
+  <text x="110" y="125" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">①</text>
+  <text x="110" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" style="fill:var(--text)">固件 POST</text>
+  <text x="110" y="152" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">枚举 GPU</text>
+  <text x="110" y="168" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">初始化显示</text>
+
+  <circle cx="255" cy="120" r="13" fill="var(--surface-2)" stroke="var(--brand)" stroke-width="2"/>
+  <text x="255" y="125" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">②</text>
+  <text x="255" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" style="fill:var(--text)">选 U 盘</text>
+  <text x="255" y="152" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">一次性</text>
+  <text x="255" y="168" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">启动菜单</text>
+
+  <circle cx="400" cy="120" r="13" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="2"/>
+  <text x="400" y="125" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--brand-ink)" style="fill:var(--brand-ink)">③</text>
+  <text x="400" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" style="fill:var(--text)">版本屏确认</text>
+  <text x="400" y="152" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">空格 / 回车 = 继续</text>
+  <text x="400" y="168" text-anchor="middle" font-size="10" fill="var(--danger)" style="fill:var(--danger)">其他键 / 30s = 中止</text>
+
+  <circle cx="545" cy="120" r="13" fill="var(--surface-2)" stroke="var(--warn)" stroke-width="2"/>
+  <text x="545" y="125" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--warn)" style="fill:var(--warn)">④</text>
+  <text x="545" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" style="fill:var(--text)">执行事务</text>
+  <text x="545" y="152" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">GPU 可能黑屏</text>
+  <text x="545" y="168" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">日志即时写盘</text>
+
+  <circle cx="690" cy="120" r="13" fill="var(--surface-2)" stroke="var(--brand)" stroke-width="2"/>
+  <text x="690" y="125" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">⑤</text>
+  <text x="690" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" style="fill:var(--text)">链回系统</text>
+  <text x="690" y="152" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">按顺序查找</text>
+  <text x="690" y="168" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">引导器</text>
+
+  <circle cx="820" cy="120" r="13" fill="var(--surface-2)" stroke="var(--ok)" stroke-width="2"/>
+  <text x="820" y="125" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--ok)" style="fill:var(--ok)">⑥</text>
+  <text x="820" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" style="fill:var(--text)">系统内验证</text>
+  <text x="820" y="152" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">读回 SS 值</text>
+  <text x="820" y="168" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">才算完成</text>
+
+  <!-- 下方两条说明 -->
+  <rect x="40" y="198" width="400" height="86" rx="8" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="56" y="220" font-size="11.5" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">⑤ 的链回顺序</text>
+  <text x="56" y="240" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">Windows Boot Manager → 受支持的 Linux</text>
+  <text x="56" y="256" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">shim / grub / systemd-boot / Limine → 通用</text>
+  <text x="56" y="272" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">EFI/BOOT/BOOTX64.EFI（最后一档留 5 秒按键退出）</text>
+
+  <rect x="460" y="198" width="400" height="86" rx="8" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="476" y="220" font-size="11.5" font-weight="700" fill="var(--brand)" style="fill:var(--brand)">④ 的黑屏不是失败</text>
+  <text x="476" y="240" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">loader 主动断开 GOP 句柄，让系统引导器重建显示。</text>
+  <text x="476" y="256" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">部分 AMI 固件在这一步卡死或复位 —— 那才是需要</text>
+  <text x="476" y="272" font-size="10.5" fill="var(--text-2)" style="fill:var(--text-2)">no-reconnect.txt 的场景（见 08 章）</text>
+</g>
+</svg>
+<figcaption><b>图 6-1</b>　启动时序：确认窗口、黑屏预期与链回顺序</figcaption>
+</figure>
+
+<h3>6.3 日志</h3>
+
+<p>所有阶段日志写在 U 盘根目录 <code>loader.log</code>，<strong>每行带 <code>[+ms]</code> 阶段计时前缀</strong>，
+所以回显耗时与事务等待时间可以直接从日志里分开看。下次运行会覆盖它，<b>每次跑完先另存一份</b>。</p>
+
+<p>关键行包括：</p>
+
+<ul>
+<li><code>DMA-PATH</code> / <code>BRIDGE-BME</code>：loader 为 GPU 上游桥开启 Bus Master 并读回，结束时还原。这两行是 0x89 类问题的第一现场。</li>
+<li><code>SAMPLE</code> 段：冷态寄存器采样值，可与上游的「寄存器冷值表」对照。</li>
+<li><code>HANDOFF-OUT</code>：交棒时的状态，要和系统侧读回结果对照看。</li>
+<li>家族判据行：Ada 的 marker / HALT、Ampere 的 PLM 翻转、Turing 的 FEAT 读回。</li>
+</ul>
+
+<h3>6.4 慢速控制台的处理</h3>
+
+<p>部分机器的 iGPU 控制台刷新慢到约 1 行/秒，一次事务的回显会拖到分钟级。官方给的解法是安静模式，而不是异步输出
+（UEFI 引导服务是单线程的，GOP 文本渲染本身同步调用，异步提不了吞吐）：</p>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>U 盘根目录 · tx-quiet.txt</span></div>
+<pre><span class="c"># 建一个空文件即可。console 只显示裁决行：</span>
+<span class="c"># banner / 确认 / 每卡目标与结果 / HANDOFF / FINAL / CHAIN</span>
+<span class="c"># loader.log 仍然逐行全量记录</span>
+<span class="c"># 事务期间画面停在最后一行属正常，不是卡死</span></pre>
+</div>
+
+<p>与自动运行标记组合，就是全自动无人值守的快速跑法（见附录 B 的标记表）。</p>
+
+<h2 id="s7"><span class="sn">07</span>系统内验证与修复</h2>
+
+<p class="lead">这一章是整份手册里最不能跳过的部分。EFI 打印全绿只证明事务路径跑完了，
+真正的验收是「驱动加载之后，覆盖值还在不在、性能有没有变化」。</p>
+
+<h3>7.1 Windows：ssdiag</h3>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>管理员 PowerShell · 发布包目录</span></div>
+<pre><span class="c"># 默认只读诊断：dump 每块 NVIDIA 显示设备</span>
+<span class="p">PS&gt;</span> .\ssdiag-x86_64-windows.exe
+
+<span class="c"># 只看平台门与发现的卡，不加载任何驱动（最安全的第一步）</span>
+<span class="p">PS&gt;</span> .\ssdiag-x86_64-windows.exe --dry-run
+
+<span class="c"># 按 DeviceID 缩小范围（多卡机器）</span>
+<span class="p">PS&gt;</span> .\ssdiag-x86_64-windows.exe --select 2504
+
+<span class="c"># 写操作：仅在 FEAT 门仍开时重写 SS0/SS1 并读回，不写 PLM</span>
+<span class="p">PS&gt;</span> .\ssdiag-x86_64-windows.exe --reapply</pre>
+</div>
+
+<p>工具会自行从操作系统发现 BAR0，<b>不接受手填物理地址</b>，也会按需唤醒停泊的卡。它内嵌一个经哈希校验的
+<code>pmxdrv.sys</code>：若机器上已有可用设备（例如 nvoc 部署的）就直接借用，不做任何服务改动；否则临时解出并在
+<code>SSDIAG_PMXDRV</code> 这个自有服务名下加载，退出时（含所有退出路径）停止、删除服务并清理临时文件，不会在你的服务列表里留东西。</p>
+
+<div class="callout warn">
+<span class="t">Secure Boot 也会挡住诊断工具</span>
+<p>内嵌的 <code>pmxdrv.sys</code> 是 Intel/COMODO 交叉签名的（叶子证书 2018-10 签发，没有 Microsoft 根），
+在 Secure Boot 开启的机器上不符合任何 DSE 的例外条款，加载会被拒绝。所以「关 Secure Boot」不只是为 EFI，也是为诊断。
+<code>--dry-run</code> 不加载驱动，可以先跑它确认平台门状态。</p>
+</div>
+
+<h3>7.2 读回判据</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:300px">读回结果</th><th>判断与下一步</th></tr></thead>
+<tbody>
+<tr><td>SS0 = <code>0x88888888</code><br>SS1 低四位 = <code>0x8</code></td><td class="ok"><b>覆盖值有效。</b>再用匹配的负载验证性能是否真的变了</td></tr>
+<tr><td>Ampere/Ada：门仍开，但 SS 值不符</td><td class="warnc">选择器被冲回了。可以用 <code>--reapply</code> 修复，修完再读回一次</td></tr>
+<tr><td>Turing：门被重锁，但 SS 值正确</td><td class="ok"><b>这是正常的交棒状态。</b>Turing 的解锁路径本来就主动重锁 PLM 并跳过 FLR</td></tr>
+<tr><td>门关闭且 SS 无效，或卡已失电</td><td class="bad">修复工具<b>不能</b>重新开门，也不能恢复断电状态。按 08 章的恢复流程重放</td></tr>
+</tbody>
+</table>
+</div>
+
+<figure class="fig">
+<svg viewBox="0 0 900 344" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="读回判定决策树">
+<defs>
+<marker id="ar4" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+<path d="M0,0 L9,3.5 L0,7 z" fill="var(--text-faint)"/>
+</marker>
+</defs>
+<g font-family="Microsoft YaHei, system-ui, sans-serif">
+  <text x="450" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)" style="fill:var(--text)">拿到读回结果之后怎么走</text>
+
+  <!-- 起点 -->
+  <rect x="330" y="38" width="240" height="44" rx="8" fill="var(--brand-soft)" stroke="var(--brand)"/>
+  <text x="450" y="58" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--brand-ink)" style="fill:var(--brand-ink)">ssdiag / diag-unlock.py 读回</text>
+  <text x="450" y="74" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">先看家族，再看门，最后看 SS 值</text>
+
+  <line x1="450" y1="82" x2="450" y2="98" stroke="var(--text-faint)" stroke-width="1.5" marker-end="url(#ar4)"/>
+
+  <!-- 先分家族 -->
+  <rect x="300" y="102" width="300" height="38" rx="7" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="450" y="126" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" style="fill:var(--text)">先确认是哪一族：Ada / Ampere 与 Turing 判据不同</text>
+
+  <line x1="380" y1="140" x2="230" y2="164" stroke="var(--text-faint)" stroke-width="1.4" marker-end="url(#ar4)"/>
+  <line x1="520" y1="140" x2="670" y2="164" stroke="var(--text-faint)" stroke-width="1.4" marker-end="url(#ar4)"/>
+
+  <!-- 左分支：Ada/Ampere -->
+  <rect x="24" y="168" width="412" height="40" rx="7" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="230" y="193" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" style="fill:var(--text)">Ada / Ampere：门开着吗？SS0/SS1 还是覆盖值吗？</text>
+
+  <rect x="24" y="222" width="196" height="98" rx="7" fill="var(--ok-soft)" stroke="var(--ok)"/>
+  <text x="122" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ok)" style="fill:var(--ok)">门开 + SS 有效</text>
+  <text x="122" y="264" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">解锁在系统内成立</text>
+  <text x="122" y="282" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">下一步：同负载对比性能</text>
+  <text x="122" y="302" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">没变化就查功耗墙与频率</text>
+
+  <rect x="240" y="222" width="196" height="98" rx="7" fill="var(--warn-soft)" stroke="var(--warn)"/>
+  <text x="338" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="var(--warn)" style="fill:var(--warn)">门开 + SS 被冲回</text>
+  <text x="338" y="264" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">devinit 或驱动重写了选择器</text>
+  <text x="338" y="282" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">可 --reapply 写回并再读回</text>
+  <text x="338" y="302" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">修不好就查驱动版本 / RTD3</text>
+
+  <!-- 右分支：Turing -->
+  <rect x="464" y="168" width="412" height="40" rx="7" fill="var(--surface-2)" stroke="var(--border)"/>
+  <text x="670" y="193" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" style="fill:var(--text)">Turing：门会被主动重锁，只看 SS 值与 FEAT 读回</text>
+
+  <rect x="464" y="222" width="196" height="98" rx="7" fill="var(--ok-soft)" stroke="var(--ok)"/>
+  <text x="562" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ok)" style="fill:var(--ok)">门锁 + SS 有效</text>
+  <text x="562" y="264" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">正常交棒状态，勿判失败</text>
+  <text x="562" y="282" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">GSP 必须处于运行态</text>
+  <text x="562" y="302" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">否则会 TDR / Code 43</text>
+
+  <rect x="680" y="222" width="196" height="98" rx="7" fill="var(--danger-soft)" stroke="var(--danger)"/>
+  <text x="778" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="var(--danger)" style="fill:var(--danger)">SS 也无效 / 卡已失电</text>
+  <text x="778" y="264" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">修复工具无能为力</text>
+  <text x="778" y="282" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">需按恢复流程重新走一次 U 盘</text>
+  <text x="778" y="302" text-anchor="middle" font-size="10" fill="var(--text-2)" style="fill:var(--text-2)">保留 loader.log 便于定位</text>
+</g>
+</svg>
+<figcaption><b>图 7-1</b>　读回判定决策树：家族判据不同，别把 Turing 的正常交棒当成失败</figcaption>
+</figure>
+
+<h3>7.3 Linux：diag-unlock.py</h3>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>源码树根目录</span></div>
+<pre><span class="c"># 只读诊断（默认）</span>
+<span class="p">$</span> sudo python3 tools/diag-unlock.py
+
+<span class="c"># 指定实际目标 BDF</span>
+<span class="p">$</span> sudo python3 tools/diag-unlock.py --bdf 0000:01:00.0
+
+<span class="c"># 写操作：门仍开时重写 SS 覆盖值</span>
+<span class="p">$</span> sudo python3 tools/diag-unlock.py --reapply</pre>
+</div>
+
+<h3>7.4 Linux 的头号陷阱：RTD3</h3>
+
+<p>「日志全绿，进系统却一点提升都没有」在 Linux 上最常见的原因不是解锁失败，而是<b>运行时空闲断电把易失状态清掉了</b>。
+若发行版在 <code>/usr/lib/modprobe.d/nvidia-runtimepm.conf</code> 里启用了 <code>NVreg_DynamicPowerManagement=0x02</code>，
+需要用同名文件在 <code>/etc/modprobe.d/</code> 覆盖（先备份已有配置）：</p>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>Debian / Ubuntu</span></div>
+<pre><span class="p">$</span> echo 'options nvidia NVreg_DynamicPowerManagement=0x00' | \
+    sudo tee /etc/modprobe.d/nvidia-runtimepm.conf
+<span class="p">$</span> sudo update-initramfs -u
+<span class="c"># Fedora / RHEL: sudo dracut -f</span></pre>
+</div>
+
+<p>重启后要检查<b>生效值</b>，而不是只看配置文件写没写对：</p>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:250px">检查项</th><th style="width:400px">命令</th><th>预期</th></tr></thead>
+<tbody>
+<tr><td>驱动参数生效值</td><td><code>grep DynamicPowerManagement /proc/driver/nvidia/params</code></td><td><code>0</code> 或 <code>0x00</code></td></tr>
+<tr><td>合并后的配置</td><td><code>modprobe -c | grep -i DynamicPowerManagement</code></td><td>只剩一项 <code>0x00</code>（不同名文件的 options 会累加，注意冲突项）</td></tr>
+<tr><td>GPU 电源状态</td><td><code>cat /sys/bus/pci/devices/&lt;bdf&gt;/power_state</code></td><td>实际目标 BDF 为 <code>D0</code></td></tr>
+<tr><td>解锁状态</td><td><code>sudo python3 tools/diag-unlock.py</code></td><td>SS 覆盖值有效</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout">
+<span class="t">配置改对不等于状态恢复</span>
+<p>已经被掉电清掉的解锁状态，改配置不会自己回来，必须重跑一次 U 盘事务。配置只负责「别再把状态清掉」。</p>
+</div>
+
+<h3>7.5 性能对比怎么做</h3>
+
+<ul>
+<li><b>先有基线。</b>解锁前用固定张量形状、精度、批次大小和功耗设置跑一次并落盘。</li>
+<li><b>同条件复测。</b>解锁后再跑一次完全相同的负载，只改解锁状态这一个变量。</li>
+<li><b>核验基准工具本身。</b>确认输入张量非零、没有被编译期常量折叠掉——社区有过实例，上游 mmapeak 存在编译期零输入坍缩，
+后来改用运行时随机化的 fork 才测准。用 FP32 平价做控制标定噪声。</li>
+<li><b>分开汇报。</b>「固件执行成功」「系统存活」「性能变化」是三件事，不要合成一个「成功」。</li>
+</ul>
+
+<h2 id="s8"><span class="sn">08</span>故障速查与恢复</h2>
+
+<h3>8.1 现象速查表</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:230px">现象</th><th style="width:250px">根因方向</th><th>第一步做什么</th></tr></thead>
+<tbody>
+<tr><td>版本屏按了键就退出、没执行</td><td>按的不是空格或回车，或 30 秒超时</td><td>重新进一次，按空格</td></tr>
+<tr><td>事务后黑屏、卡在 <code>RECONNECT: ConnectController</code></td><td>部分 AMI 固件在 GOP 重连阶段卡死/复位</td><td>彻底断电恢复后，在 U 盘根放 <code>no-reconnect.txt</code> 再跑</td></tr>
+<tr><td>booter status <code>0x89</code></td><td>WPR 描述符校验失败：GPU 上游 PCI 桥未开 Bus Master，DMA 读不到 WprMeta</td><td>保留完整日志，查 <code>DMA-PATH</code> / <code>BRIDGE-BME</code> 行；检查 BIOS 的 BME DMA Mitigation 保持默认</td></tr>
+<tr><td>Turing booter <code>0x91</code></td><td>对 sub-4GB meta/WPR staging 的读锁（旧 booter 行为）</td><td>升级到 v2.1.2 以上（v2.1.8 起已有 GSP-HALT 门 + 低位 staging 默认收敛）；核对实际 DMA 地址与可用显存</td></tr>
+<tr><td>EFI 全绿，进系统没提升</td><td>Ampere/Ada 被 devinit 冲回厂值；Linux 被 RTD3 清掉；或本来就没写进去</td><td>跑 ssdiag 读回，按图 7-1 分支处理</td></tr>
+<tr><td>门开但 SS 回厂值</td><td>devinit 重写了选择器</td><td><code>ssdiag --reapply</code> 写回并再读回</td></tr>
+<tr><td>门关且 SS 无效</td><td>完整复位或断电</td><td>修复工具救不了，重走 U 盘事务</td></tr>
+<tr><td>Code 43 / 驱动反复复位</td><td>Turing 未开 GSP；或驱动初始化失败</td><td>检查 GSP 运行态（<code>nvidia-smi -q</code> 中不能是 N/A）；必要时 DDU 重装驱动</td></tr>
+<tr><td>双卡 Code 12</td><td>资源冲突（已有 2080 Ti NVLink 双卡案例）</td><td>记录并反馈上游，不是靠改选项能解的</td></tr>
+<tr><td>混合输出机型进系统无收益</td><td>无 MUX 平台的交棒路径差异</td><td>先读回确认，再考虑切独显直连重试</td></tr>
+<tr><td>雷电 eGPU 不保留解锁</td><td>隧道重建 / hot reset / 坞供电管理复位端点</td><td>不作为保证环境；以原生 PCIe 插槽与独显直连为准</td></tr>
+<tr><td>U 盘有 3 个以上 <code>v67-*.bin</code></td><td>混家族构建，或把别的家族资产也复制了</td><td>按脚本 <code>expected</code> 清单重做，单一家族内不要混</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>8.2 恢复流程</h3>
+
+<div class="callout danger">
+<span class="t">同一个会话内不要重试</span>
+<p>出现 STOP、异常或黑屏卡死时，固件可能仍在运行、DMA 缓冲可能仍被占用。此时再跑一次不是「重试」，是叠加风险。</p>
+</div>
+
+<ol class="steps">
+<li><span class="st-h">彻底断电</span>完全关机断电。笔记本按厂商流程做 EC 放电（长按电源键或拆电池，按机型手册来）。</li>
+<li><span class="st-h">拔 U 盘，正常启动</span>走原有的系统引导项正常开机。本工具不需要写 ESP、也不改永久启动顺序，所以这一步不需要任何清理操作。</li>
+<li><span class="st-h">检查设备状态</span>看设备管理器错误码与系统事件日志，保留 <code>loader.log</code> 原件，再按具体症状对照 8.1 排障。</li>
+<li><span class="st-h">驱动仍异常时</span>再做一次彻底断电并检查；必要时用 DDU 重装驱动。</li>
+</ol>
+
+<p>解锁效果会随断电清除。黑屏、事务失败或驱动错误<b>本身不能证明硬件永久损坏</b>，但也不能代替恢复后的设备检查。</p>
+
+<h3>8.3 常见问答</h3>
+
+<h4 class="q"><span class="qno">Q1</span>能不能装到内置硬盘分区，开机自动解锁？</h4>
+<p>可以，但属于专业用户自担操作，官方不提供自动化脚本。实证可行的形态是：从数据卷缩出约 2 GB 的 FAT32 分区，
+按 U 盘同款布局放置 EFI 与资产，在 BIOS 启动菜单里把它（通常显示为 <code>UEFI OS</code>）手动调到前面，或用 F12 一次性选择。
+随时可以从 BIOS 菜单改回 Windows Boot Manager，不刷任何东西。</p>
+<p>走不通的路要说清楚：用 <code>bcdedit /create /application osloader</code> 造条目，<code>device</code> 落在盘符上、重启即失效；
+<code>bootsector</code> 类型的 <code>device</code> 字段是空的——两条路都进不了 <code>{fwbootmgr}</code>。别在这上面花时间。</p>
+<p>官方不做自动化的理由很实在：缩容场景千差万别（双系统、跨盘引导、btrfs / zfs 不支持在线缩容），
+强行覆盖所有存储拓扑有真实的数据安全风险。</p>
+
+<h4 class="q"><span class="qno">Q2</span>为什么事务成功后还会复位或黑屏？</h4>
+<p>部分 AMI 固件会在 GPU 事务完成后的 GOP 重连中卡死或复位。loader 对断开后仍存在的无路径 GOP 使用非递归的厂商重连，
+并在链式加载前跳过 NVIDIA 显示功能。</p>
+<p>若仍停在 <code>RECONNECT: ConnectController ... begin</code> 或该阶段复位，断电恢复后在 U 盘根放 <code>no-reconnect.txt</code>
+跳过目标 GPU 重连。Windows Boot Manager 可以自行建立控制台，<b>跳过重连不等于跳过系统内验证</b>。</p>
+
+<h4 class="q"><span class="qno">Q3</span>SVM / VT-x / VT-d 要不要关？</h4>
+<p>在已验证平台上不需要关。任务管理器里那个「虚拟化」不是 PCI Command 的 Bus Master 位，两者别混。
+个别 AMD 平台的失败来自 BIOS 的 IOMMU（AMD-Vi）挡住了 booter 的 DMA，关掉相关选项后全链通过——但那属于平台侧的 DMA 前提问题，
+处理依据是日志里的桥 BME 行，不是盲目关虚拟化。</p>
+
+<h4 class="q"><span class="qno">Q4</span>回放模式和只读检查有什么区别？</h4>
+<p>移除 <code>v67-*.bin</code> 会进入回放模式：<b>不执行解锁载荷</b>，但仍会断开驱动、执行签名固件并可能复位 GPU。
+它<b>不是只读检查</b>。真正的只读采样要用 <code>cargo efi</code> 构建的程序（不带 <code>tx</code> feature）。</p>
+
+<h4 class="q"><span class="qno">Q5</span>失败了怎么反馈才有用？</h4>
+<p>提交完整 <code>loader.log</code>、GPU 型号与 PCI ID、平台、驱动版本、显示模式、进入方式、系统侧诊断结果。
+魔改卡另附原型号、VBIOS 与显存容量。日志可以先脱敏机器信息。性能问题要附相同条件下的测试规模、精度、功耗和前后结果。</p>
+
+<h2 id="s9"><span class="sn">09</span>与 nvoc 组合调优</h2>
+
+<p>两者职责不同、可以叠加：本工具解除<b>计算发射速率</b>限制（UEFI 阶段），
+<a href="https://github.com/Skyworks-Neo/nvoc">nvoc</a> 提供<b>系统内</b>的功耗、电压与超频控制。</p>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:230px">nvoc 能力</th><th>适用范围与现状</th></tr></thead>
+<tbody>
+<tr><td>kmd 功耗墙解锁</td><td>移动端可用；10/20 系桌面卡有驱动读回，<b>性能效果尚待验证</b></td></tr>
+<tr><td><code>set-volt-rail-limit</code></td><td>电压墙控制，适用于 10 系及之后 GPU</td></tr>
+<tr><td>超频 / 频率控制</td><td>需自行确认散热与供电余量</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>推荐顺序：</p>
+
+<ol class="steps">
+<li><span class="st-h">先独立验证本工具</span>完成解锁、在系统内确认状态、记录基线。这一步没确认之前不要叠加任何超频变量。</li>
+<li><span class="st-h">再按 nvoc 文档选控制方式</span>不要照搬别人的极限参数——那通常是特定卡 + 特定散热的实验值。</li>
+<li><span class="st-h">同负载对比</span>用 <a href="https://github.com/Skyworks-Neo/nvoc/tree/main/cli-stressor-cuda-rs">cli-stressor-cuda-rs</a> 在相同负载下比较，同时监控 Board Power、Hot Spot 和限频原因。</li>
+</ol>
+
+<div class="callout danger">
+<span class="t">叠加后的功耗温度可能远超原厂包络</span>
+<p>超功耗、超压、超温造成的物理损坏由使用者承担。见到「别人 4090 跑 600W」这类数字时记住：
+那是别人的卡、别人的散热、别人的风险预算。</p>
+</div>
+
+<h2 id="s10"><span class="sn">10</span>源码构建</h2>
+
+<p class="lead">用发布包就够用了，这一章只在你需要改代码、或者想自己出 <code>BOOTX64.EFI</code> 时才需要。</p>
+
+<h3>10.1 两个构建目标，能力完全不同</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:170px">命令</th><th style="width:330px">产物</th><th>能不能解锁</th></tr></thead>
+<tbody>
+<tr><td><code>cargo efi</code></td><td><code>target/x86_64-unknown-uefi/release/loader.efi</code></td><td class="bad"><b>不能。</b>这是只读采样程序，用于诊断</td></tr>
+<tr><td><code>cargo efi-tx</code></td><td>同上路径，但带 <code>--features tx</code></td><td class="ok"><b>能。</b>这是带 GPU 写路径的事务程序</td></tr>
+<tr><td><code>cargo build --release</code></td><td>宿主侧 <code>assets</code> 与 <code>sim</code></td><td>—　不含 loader</td></tr>
+<tr><td><code>cargo xt</code></td><td>宿主测试（<code>--workspace --exclude loader</code>）</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout warn">
+<span class="t">这是最容易搞错的一处</span>
+<p>很多人照着 README 敲 <code>cargo efi</code>，拿到 <code>loader.efi</code> 放进 U 盘，结果什么都没发生。
+因为 <code>cargo efi</code> 是<b>只读</b>的。要能写，必须用 <code>cargo efi-tx</code>。</p>
+<p>另外不要对宿主目标执行 <code>cargo build --workspace</code>——loader 是 UEFI 目标，编不了宿主三元组。</p>
+</div>
+
+<h3>10.2 完整构建流程</h3>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>Rust 工具链（Windows 选 MSVC 版）· 仓库根目录</span></div>
+<pre><span class="c"># 1. 加 UEFI 目标</span>
+<span class="p">$</span> rustup target add x86_64-unknown-uefi
+
+<span class="c"># 2. 宿主侧工具（assets / sim）</span>
+<span class="p">$</span> cargo build --release
+
+<span class="c"># 3. 事务版 EFI 应用（★ 注意是 efi-tx，不是 efi）</span>
+<span class="p">$</span> cargo efi-tx
+
+<span class="c"># 4. 用自建产物制盘</span>
+<span class="p">PS&gt;</span> .\release\make-usbroot.ps1 -Family 40 `
+      -AssetsExe .\target\release\assets.exe `
+      -BootEfi .\target\x86_64-unknown-uefi\release\loader.efi</pre>
+</div>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>Linux 等价写法</span></div>
+<pre><span class="p">$</span> bash release/make-usbroot.sh --family 40 \
+    --assets ./target/release/assets \
+    --boot-efi ./target/x86_64-unknown-uefi/release/loader.efi</pre>
+</div>
+
+<p>ssdiag 是独立的 crate，不在发布包里的情况下单独构建：</p>
+
+<div class="term">
+<div class="bar"><i></i><i></i><i></i><span>Windows</span></div>
+<pre><span class="p">PS&gt;</span> cargo build --release --manifest-path tools/ssdiag/Cargo.toml</pre>
+</div>
+
+<h3>10.3 源码结构</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:150px">目录</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td><code>loader/</code></td><td>UEFI 应用本体：<code>main.rs</code>、<code>tx*.rs</code>（事务）、<code>chainload.rs</code>（链回）、<code>gop.rs</code>、<code>pci.rs</code>、<code>sample.rs</code>（采样）等</td></tr>
+<tr><td><code>assets/</code></td><td>下载、校验、抽取与载荷生成</td></tr>
+<tr><td><code>sim/</code></td><td>宿主模拟器与事务测试</td></tr>
+<tr><td><code>tools/</code></td><td>系统内诊断工具（<code>ssdiag/</code>、<code>diag-unlock.py</code>、<code>collect_compat.py</code>）</td></tr>
+<tr><td><code>docs/</code></td><td>兼容性、FAQ、机制报告、<code>evidence/</code> 原始实验证据</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="s11"><span class="sn">11</span>安全边界与已知缺口</h2>
+
+<p>上游把「做不到」和「没验证」写得比「做到了」更明确。这一章照抄它的边界，因为<strong>知道边界在哪，比相信工具万能更有用</strong>。</p>
+
+<h3>11.1 设计纪律</h3>
+
+<ul>
+<li>写入以<b>读回</b>为验收依据。状态码和「运行完成」提示不构成独立执行证明。</li>
+<li>异常后<b>同会话不重试</b>；只从 U 盘 / 一次性启动菜单进入，不覆写系统 ESP，不设置常驻 BootOrder。</li>
+<li>NVIDIA 固件从钉版输入<b>本地生成</b>，不分发、不入 git；校验失败即停止。</li>
+<li>模拟器再全绿，真机验收仍以读回为准。</li>
+</ul>
+
+<h3>11.2 明确写出的缺口</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:270px">缺口</th><th>影响</th></tr></thead>
+<tbody>
+<tr><td>loader 只记录 PROM CRC32</td><td><b>尚未实现逐卡 ROM/PROM SHA-256 强制匹配</b>，所以不要声称它做过这件事</td></tr>
+<tr><td>描述符解析支持 V2/V3</td><td>V1 未实现，encrypted 位未保留或强制检查</td></tr>
+<tr><td>运行装载使用 portal</td><td>Falcon DMA 仍属实验代码</td></tr>
+<tr><td>模拟器部分 verdict 来自故障开关与模拟侧 marker</td><td>不能替代真机读回</td></tr>
+<tr><td>WPR2 守卫、pre-FLR 与家族路径相关</td><td>不能把所有拒绝都称为「零写」。界面中止、严格 D0 入口中止才有零写语义；<code>EBUSY</code> 之前可能已修改 PCI 配置并断开控制台</td></tr>
+<tr><td>Ada 的 FBPA 读回 <code>0xffffff0f</code></td><td>这是<b>允许的观察值</b>，不应单独据此判失败。scrubber 的 handoff/超时警告也不是最终判据</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>11.3 许可与合规</h3>
+
+<ul>
+<li>代码许可：<b>GPL-2.0-only</b>（见发布包内 <code>LICENSE</code>）。分发修改版需遵守 GPL 条款。</li>
+<li>NVIDIA 固件与 VBIOS <b>版权归 NVIDIA</b>，按其原许可条款从公开包在本地再生，仓库不分发。这也是发布包只有 1 MB 出头的原因。</li>
+<li>本手册是对上游公开文档的中文整合与重述，不含固件、不属于上游官方出版物；上游不为本手册内容背书。</li>
+</ul>
+
+<h2 id="a1"><span class="sn">A</span>命令速查</h2>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:330px">命令</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td><code>nvidia-smi --query-gpu=name,pci.device_id --format=csv</code></td><td>查型号与 device ID，用于判断家族</td></tr>
+<tr><td><code>nvidia-smi --query-gpu=pci.bus_id --format=csv</code></td><td>查 BDF，多卡机器选卡用</td></tr>
+<tr><td><code>.\make-usbroot.ps1</code></td><td>在目标机制盘，自动识别代际</td></tr>
+<tr><td><code>.\make-usbroot.ps1 -Family 40|30|20|all</code></td><td>异机制盘，显式指定家族</td></tr>
+<tr><td><code>.\make-usbroot.ps1 -SkipGspCheck</code></td><td>制盘机无 Turing 卡时跳过制盘机检查</td></tr>
+<tr><td><code>bash make-usbroot.sh [--family all]</code></td><td>Linux / WSL / Git Bash 版制盘</td></tr>
+<tr><td><code>.\enable-turing-unlock.ps1</code></td><td>Turing：设 <code>EnableGpuFirmware=1</code>，之后必须重启</td></tr>
+<tr><td><code>.\enable-turing-unlock.ps1 -Remove</code></td><td>撤销上述注册表设置</td></tr>
+<tr><td><code>.\ssdiag-x86_64-windows.exe</code></td><td>系统内只读诊断</td></tr>
+<tr><td><code>.\ssdiag-x86_64-windows.exe --dry-run</code></td><td>只看平台门与发现的卡，不加载驱动</td></tr>
+<tr><td><code>.\ssdiag-x86_64-windows.exe --select 1F07</code></td><td>按 DeviceID 筛选</td></tr>
+<tr><td><code>.\ssdiag-x86_64-windows.exe --reapply</code></td><td>门开时重写 SS0/SS1（写操作）</td></tr>
+<tr><td><code>sudo python3 tools/diag-unlock.py --bdf 0000:01:00.0</code></td><td>Linux 只读诊断，指定 BDF</td></tr>
+<tr><td><code>sudo python3 tools/diag-unlock.py --reapply</code></td><td>Linux 写操作</td></tr>
+<tr><td><code>grep DynamicPowerManagement /proc/driver/nvidia/params</code></td><td>Linux 检查 RTD3 生效值</td></tr>
+<tr><td><code>rustup target add x86_64-unknown-uefi</code></td><td>构建前置：加 UEFI 目标</td></tr>
+<tr><td><code>cargo build --release</code></td><td>构建宿主侧 assets / sim</td></tr>
+<tr><td><code>cargo efi-tx</code></td><td><b>构建可写事务 EFI</b>（解锁用这个）</td></tr>
+<tr><td><code>cargo efi</code></td><td>构建只读采样 EFI（不能解锁）</td></tr>
+<tr><td><code>cargo xt</code></td><td>跑宿主测试</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="a2"><span class="sn">B</span>U 盘文件与标记速查</h2>
+
+<h3>B.1 必需文件</h3>
+
+<p>见 <a href="#s5">5.5 家族文件清单</a>。要点重复一次：<b>只复制脚本 <code>expected</code> 清单里的文件</b>，
+中间文件不要放上去；<code>EFI/BOOT/BOOTX64.EFI</code> 替换前先备份。</p>
+
+<h3>B.2 可选标记文件（放 U 盘根，普通使用不需要）</h3>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:230px">标记文件</th><th>行为</th></tr></thead>
+<tbody>
+<tr><td><code>tx-require-d0.txt</code></td><td>入口非 D0 时<b>中止</b>，不进行 GPU 写入或复位。想要「宁可不动」时用它</td></tr>
+<tr><td><code>tx-select-bdf.txt</code></td><td>内容为 <code>bb:dd.f</code> 或 <code>dddd:bb:dd.f</code>，只处理匹配的卡；解析失败或目标缺失时<b>不会</b>改选其他卡</td></tr>
+<tr><td><code>chain-target.txt</code></td><td>第一个非空、非 <code>#</code> 行指定优先 EFI 路径，逐卷查找；找不到时记日志并回退默认顺序</td></tr>
+<tr><td><code>tx-no-preload.txt</code></td><td>禁用预驱动预载链回，回到事务后逐卷扫描的旧路径</td></tr>
+<tr><td><code>no-reconnect.txt</code></td><td>跳过目标 GPU 的 GOP 重连。适用于事务后重连卡死或复位</td></tr>
+<tr><td><code>i_know_what_i_am_doing.txt</code></td><td>N 秒倒计时后<b>自动运行</b>，任意键中止；首行数字（1–30）可覆盖秒数，缺省 5</td></tr>
+<tr><td><code>tx-flush-lines.txt</code></td><td>日志 flush 频率，首行数字 0–4096 覆盖（缺省 16 行/次；0 = 仅阶段标记行）。调大减少 U 盘慢写停顿，代价是挂死时丢更多日志尾巴</td></tr>
+<tr><td><code>tx-quiet.txt</code></td><td>安静模式：console 只显示裁决行，<code>loader.log</code> 仍全量记录</td></tr>
+<tr><td><code>tx-gop-disconnect.txt</code></td><td><b>诊断开关</b>：断开所有 GOP 句柄（含 iGPU）。<b>不要当提速手段用</b>——console 静默后无增益，且其他卡的 console 被杀后 loader 不会恢复</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout warn">
+<span class="t">关于自动运行标记</span>
+<p><code>i_know_what_i_am_doing.txt</code> 会让事务在倒计时后自动执行——这等于放弃了「必须人工确认」这层保护。
+正常部署时<b>应当确保这个文件不存在</b>。它只用于明确要求的无人值守场景。</p>
+</div>
+
+<h2 id="a3"><span class="sn">C</span>参考资源</h2>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:230px">资源</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/physicsdolphin/nv-uefi-unlocker">上游仓库</a></td><td>源码、文档、issue</td></tr>
+<tr><td><a href="https://github.com/physicsdolphin/nv-uefi-unlocker/releases">Releases</a></td><td>发布包与 SHA256SUMS（本手册对接 v2.1.9）</td></tr>
+<tr><td><a href="https://github.com/physicsdolphin/nv-uefi-unlocker/blob/main/docs/compatibility.md">兼容性矩阵</a></td><td>逐卡证据与例外，本手册 03 章的数据来源</td></tr>
+<tr><td><a href="https://github.com/physicsdolphin/nv-uefi-unlocker/blob/main/docs/faq.md">FAQ</a></td><td>USB 文件、Turing、Linux、雷电、ssdiag、恢复、安全边界</td></tr>
+<tr><td><a href="https://github.com/physicsdolphin/nv-uefi-unlocker/blob/main/AGENTS.deploy.md">AGENTS.deploy.md</a></td><td>面向 AI Agent 的部署指南，流程最严谨的一份</td></tr>
+<tr><td><a href="https://github.com/physicsdolphin/nv-uefi-unlocker/issues">Issues</a> / <a href="https://github.com/physicsdolphin/nv-uefi-unlocker/discussions">Discussions</a></td><td>反馈与成功案例分享</td></tr>
+<tr><td><a href="https://github.com/Skyworks-Neo/nvoc">nvoc</a></td><td>系统内功耗/电压/超频控制，可与本工具叠加</td></tr>
+<tr><td><a href="https://www.bilibili.com/video/BV1d6xN66ECM/">项目宣传片</a></td><td>上游官方视频</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="a4"><span class="sn">D</span>交付包内容说明</h2>
+
+<p>本手册所在的目录是一个自包含交付包，开箱即用：</p>
+
+<div class="tw">
+<table>
+<thead><tr><th style="width:230px">目录</th><th>内容与用法</th></tr></thead>
+<tbody>
+<tr><td><code>操作教程.html</code></td><td><b>建议从这里开始。</b>线性八步教程：解压 → 判断兼容性 → 关 Secure Boot → 制盘 → U 盘启动 → 验证 → 回退，每步给「做什么 / 看到什么 / 不对怎么办」</td></tr>
+<tr><td><code>使用手册.html</code></td><td>本文件。结构化的参考手册，按主题查阅：原理、兼容性矩阵、故障速查、源码构建。双击用浏览器打开，无需联网</td></tr>
+<tr><td><code>README.txt</code></td><td>纯文本的包结构说明，记事本可直接看</td></tr>
+<tr><td><code>01_release-v2.1.9/</code></td><td><b>官方发布包原样文件</b>，已按官方 <code>SHA256SUMS.txt</code> 逐个校验通过。制盘就在这里跑——路径全为 ASCII，避免中文路径在 PowerShell 下的编码问题</td></tr>
+<tr><td><code>02_diag/</code></td><td><code>diag-unlock.py</code>（Linux 诊断）与 <code>collect_compat.py</code>（兼容性证据收集），从源码树复制</td></tr>
+<tr><td><code>03_docs-zh/</code></td><td>上游中文原文档：README、FAQ、兼容性矩阵、部署指南。需要原子级细节时查这里</td></tr>
+<tr><td><code>04_source/</code></td><td><b>完整 git 克隆</b>（含 <code>.git</code>，215 个文件）。要改代码或自行构建时用；也可直接 <code>git pull</code> 跟进上游</td></tr>
+<tr><td><code>00_checksums/</code></td><td>官方哈希清单与本次校验记录，用于事后审计</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout tip">
+<span class="t">第一次用的推荐顺序</span>
+<p>不想读文档就直接做：开 <code>操作教程.html</code> 照着八步走。
+想先判断可行性：读本手册 00–04 章 → 进 <code>01_release-v2.1.9/</code> 制盘 → 按 06、07 章执行与验证。
+出问题查 08 章，需要原始细节再翻 <code>03_docs-zh/</code>。</p>
+</div>
+
+<div class="rev">
+<h4>修订记录</h4>
+<div class="tw" style="margin:0">
+<table>
+<thead><tr><th style="width:80px">版本</th><th style="width:110px">日期</th><th>主要变更</th></tr></thead>
+<tbody>
+<tr><td><strong>v1.0</strong></td><td>2026-11</td><td>首版。整合上游 v2.1.9 的 README、FAQ、兼容性矩阵与部署指南；补新手导航层（三条判断 / 路径图 / 术语 / 误解表 / 最短清单）；新增六张手绘流程图；标注 <code>cargo efi</code> 与 <code>efi-tx</code> 的能力差异、GA102 段收口、Turing 判据反向等易错点；附交付包目录说明</td></tr>
+<tr><td><strong>v1.1</strong></td><td>2026-11</td><td>修打印缺陷：<code>data-theme="dark"</code> 在打印时仍生效，导致插图 <code>fill="var(--surface-2)"</code> 取到深色值、配深色文字后整张图不可读 —— 打印期统一回退浅色变量；修「回到顶部」按钮因 DOM 顺序导致监听未挂上；附录 D 增补 <code>操作教程.html</code> 与 <code>README.txt</code>，<code>04_source/</code> 更正为含 <code>.git</code> 的完整克隆</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="copyright">
+<div class="cp-h">版权与使用说明</div>
+<p>© 2026 <span class="cp-p">江苏振远智能科技有限公司</span> 保留所有权利。</p>
+<ul>
+<li><b>授权范围：</b>本文档供公司内部技术培训与项目实施参考。未经书面许可，不得复制、转载、摘编、镜像或用于商业用途。经授权转载时须保留本声明并注明出处。</li>
+<li><b>第三方商标：</b>文中出现的 NVIDIA、GeForce、RTX、GTX、Ampere、Ada、Turing、Blackwell、CUDA、Tensor 等名称与标识，以及 Microsoft、Windows、Ubuntu、Debian、Fedora 等，均为其各自权利人的商标或注册商标。<b>本文档的编制方与上述商标权利人之间不存在任何隶属、代理、赞助或背书关系。</b></li>
+<li><b>内容性质：</b>本文档系依据上游开源项目（GPL-2.0-only）的公开文档与源码独立编制，非 NVIDIA 或上游项目方的官方出版物，不构成任何明示或默示的担保。硬件操作（含关闭 Secure Boot、U 盘启动、寄存器写入、超频）存在风险，操作后果由实施者承担。</li>
+<li><b>第三方许可：</b>nv-uefi-unlocker 的代码许可为 GPL-2.0-only，其条款由该项目规定；NVIDIA 固件与 VBIOS 版权归 NVIDIA，按原许可条款从公开包本地再生，本文档与交付包均不分发固件。使用前请自行核对相关许可的适用范围。</li>
+<li><b>事实时效：</b>文中版本号、命令、device ID、issue 编号均以 2026-11 上游 v2.1.9 为基准。上游迭代较快，以现场实际输出与官方最新文档为准。</li>
+</ul>
+<div class="cp-meta">
+<span>文档编号 ZY-TECH-NVUEFI-2026-01</span><span>版本 v1.1</span><span>密级 内部资料</span>
+<span>编制单位 江苏振远智能科技有限公司</span><span>对应上游 v2.1.9</span>
+</div>
+</div>
+</main>
+</div>
+
+<div class="totop" title="回到顶部">↑</div>
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeBtn'), txt=document.getElementById('themeTxt');
+  var saved=null;
+  try{saved=localStorage.getItem('nvuefi-theme');}catch(e){}
+  if(saved==='light'||saved==='dark'){root.setAttribute('data-theme',saved);}
+  function sync(){txt.textContent = root.getAttribute('data-theme')==='dark' ? '浅色' : '深色';}
+  sync();
+  btn.addEventListener('click',function(){
+    var next = root.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme',next); sync();
+    try{localStorage.setItem('nvuefi-theme',next);}catch(e){}
+  });
+  var links=[].slice.call(document.querySelectorAll('nav.toc a'));
+  var secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
+  function hl(){
+    var y=window.scrollY+120, idx=0;
+    for(var i=0;i<secs.length;i++){ var el=secs[i]; if(!el) continue; if(!el.offsetHeight) continue; if(el.getBoundingClientRect().top+window.scrollY<=y) idx=i; }
+    links.forEach(function(a,i){a.classList.toggle('on',i===idx);});
+  }
+  window.addEventListener('scroll',hl,{passive:true}); window.addEventListener('resize',hl); hl();
+  var t=document.querySelector('.totop');
+  if(t){
+    window.addEventListener('scroll',function(){ t.classList.toggle('on', window.scrollY>600); },{passive:true});
+    t.addEventListener('click',function(){ window.scrollTo({top:0,behavior:'smooth'}); });
+  }
+})();
+</script>
+</body>
+</html>

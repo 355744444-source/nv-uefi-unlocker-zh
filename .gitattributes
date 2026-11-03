@@ -1,0 +1,9 @@
+# 本仓库同时包含校验过的二进制与文档，保持字节完全一致
+# 关闭一切换行转换，避免提交内容与包内文件产生字节差异
+* -text
+
+*.exe  binary
+*.EFI  binary
+*.bin  binary
+*.pack binary
+*.idx  binary

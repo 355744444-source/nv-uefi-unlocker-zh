@@ -1,0 +1,9 @@
+# Evidence-as-commits: binary-exact across platforms (AGENTS.md §5)
+docs/evidence/** -text
+*.log -text
+*.dump -text
+*.jsonl -text
+
+# shell scripts must stay LF (make-usbroot.sh runs on Linux)
+*.sh text eol=lf
+docs/evidence/v219-tu106-regression/loader.log -text

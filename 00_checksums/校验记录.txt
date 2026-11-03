@@ -1,0 +1,86 @@
+nv-uefi-unlocker 整合包 · 校验记录
+==============================================================
+
+上游项目 : https://github.com/physicsdolphin/nv-uefi-unlocker
+上游版本 : v2.1.9  (published 2026-11-01T19:36:18Z)
+整合时间 : 2026-11-02 09:44:21
+整合单位 : 江苏振远智能科技有限公司
+
+一、发布包完整性（对照官方 SHA256SUMS.txt）
+--------------------------------------------------------------
+  [OK  ] BOOTX64.EFI
+         9d2c41f90b290ad0da3ecf294016a7ea67638e2625d8e1b1735028298943bb5c
+  [OK  ] assets-x86_64-windows.exe
+         40822cbc81c9a7893636480ad1de67115c10858f0a66661c2f56d6072a0fe08e
+  [OK  ] assets-x86_64-linux
+         27dde7fd0c9c288126082c5dc52d845b0d365ac2829e4c4e5e7b0f45010ea715
+  [OK  ] ssdiag-x86_64-windows.exe
+         0bc1e7f3ce1dd1a845a053daa30567c606a4537fd8019230ea8ebc187fd4390d
+  [OK  ] make-usbroot.ps1
+         e5c5bcfcaca7373dac1ee9631aad9d19a67f7f69d8e33589d070923117a4ed7d
+  [OK  ] make-usbroot.sh
+         ca9d25cec0cfdca47bc832b4ef9ee9f5c75d038119eda4904be1d7c68ae4d5c7
+  [OK  ] enable-turing-unlock.ps1
+         d8a09cfcd5f670780773fa912943c282b8ea99ce946ad7d4608fd67ea6a2bd57
+  [OK  ] README.md
+         f325b8bd32159414fbad0e2da28012b825d424b0787805ad074e1d8a18fa7666
+  [OK  ] LICENSE
+         8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643
+
+  结论: 9/9 个文件哈希与官方清单一致
+
+二、UEFI 应用单独核验
+--------------------------------------------------------------
+  BOOTX64.EFI 大小  : 335872 字节
+  BOOTX64.EFI SHA256: 9d2c41f90b290ad0da3ecf294016a7ea67638e2625d8e1b1735028298943bb5c
+  PE 头特征         : MZ 可执行
+
+三、文档自检
+--------------------------------------------------------------
+  操作教程.html  : 55,265 字符 68,715 字节, 12 章, 2 张插图, 8 张表, 25 个三段块
+  使用手册.html  : 90,864 字符 116,876 字节, 16 节, 5 张插图, 24 张表
+
+  结构校验 : 两份文档标签配对 0 错误；重复属性 0；未闭合 0
+  转义校验 : 裸 & 为 0；pre 内 <、> 均已转义（标签配对全通过，无裸 < 破坏解析）
+  锚点校验 : id 重复 0；href/url(#) 悬空引用 0
+  插图数值 : SVG 文本越界 0，图号连续（T-1/T-2、图 5-1..7-1）
+  视觉校验 : 教程 2 张插图 × 深浅双主题 = 4 次渲染逐图核对
+             手册 5 张插图沿用 v1.0 的双主题核对结论
+  打印校验 : 教程 16 页 / 13,767 字符；手册 35 页 / 27,041 字符
+             关键词 make-usbroot.ps1 / v67-ad102-four-plm.bin /
+             Confirm-SecureBootUEFI / 0x88888888 / 修订记录 全部命中
+
+  v1.1 修复（影响两份文档）:
+    · 打印态插图不可读：data-theme="dark" 在 @media print 里仍生效，
+      导致 SVG 的 fill="var(--surface-2)" 取到深色值，叠加打印规则里的
+      深色文字 = 整张图看不见。修法：打印期把整套 CSS 变量回退为浅色。
+    · 「回到顶部」按钮失效：<script> 在 .totop 元素之前执行，查询结果为
+      null，监听从未挂上。修法：元素前置 + 判空。
+    · 教程打印分页：每章强制起新页导致近半空白，改为自然分页 + 标题
+      不落页底，页数由 19 降到 16。
+
+四、源码与版本库完整性（04_source/）
+--------------------------------------------------------------
+  文件总数  : 215
+  工作区    : 干净（无增删改）
+  git fsck  : 无报错
+  HEAD      : 182c5ba docs: first two 3090 20GB-form successes (OEM vendor card + bilibili comment)
+  远端      : origin -> https://github.com/physicsdolphin/nv-uefi-unlocker.git
+  说明      : 完整克隆（含 .git 与 .idea），与上游逐文件一致，可直接 git pull
+
+五、内容基准
+--------------------------------------------------------------
+  事实来源: 上游 README.md、docs/faq.md、docs/compatibility.md、
+            AGENTS.deploy.md、release/make-usbroot.ps1（输出样张取自
+            脚本内 $expected 实际打印格式）、.cargo/config.toml
+  版本基准: v2.1.9。注意上游 README 徽章仍显示 2.1.8（滞后），
+            以 Cargo.toml 的 workspace version 与 Release tag 为准
+  未收录  : NVIDIA 固件与 VBIOS（版权归 NVIDIA，须在目标机联网再生）
+
+六、使用提示
+--------------------------------------------------------------
+  · 第一次做直接开 操作教程.html 照着八步走；手册当参考书查
+  · 制盘请在 01_release-v2.1.9/ 内执行：该路径全为 ASCII，可避免
+    PowerShell 5.1 在中文路径下的编码问题
+  · 本工具涉及关闭 Secure Boot 与 GPU 寄存器写入，操作风险自负
+  · 解锁为易失性，断电即复原；每次冷启动需重放
